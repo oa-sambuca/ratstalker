@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+
+# Vim
+*.swp
+*.vim
+# config contains sensitive data
+config.py
+# nio store
+nio_store/

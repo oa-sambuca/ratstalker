@@ -1,0 +1,3 @@
+[submodule "deps/oaquery"]
+	path = deps/oaquery
+	url = https://github.com/rdntcntrl/oaquery.git
