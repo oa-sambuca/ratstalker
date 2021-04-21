@@ -3,8 +3,8 @@
 import nio
 
 from config import Config
-import commands
-import exceptions
+from src import commands
+from src import exceptions
 
 
  

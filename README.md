@@ -42,9 +42,9 @@ pip install -r requirements.txt
 
 ## Configuration
 
-Copy [config_template.py](config_template.py) to `config.py` and edit relevant
-settings before running the bot. You mostly need to provide the Matrix infos
-and specify the OpenArena servers you want to query.
+Copy [misc/config_template.py](misc/config_template.py) to `config.py` and edit
+relevant settings before running the bot. You mostly need to provide the Matrix
+infos and specify the OpenArena servers you want to query.
 
 ## Execution
 

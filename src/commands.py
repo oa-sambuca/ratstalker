@@ -3,10 +3,10 @@
 from typing import List
 import json
 
-import deps.oaquery.oaquery as oaquery
+from deps.oaquery import oaquery
 
 from config import Config
-import exceptions
+from src import exceptions
 
 
 
