@@ -50,30 +50,42 @@ class RatStalker:
 
 
 
-async def main():
-    if not os.path.isdir(Config.Bot.store_dir):
-        os.mkdir(Config.Bot.store_dir)
-    client_config=nio.ClientConfig(
-            store_name=Config.Bot.store_name,
-            store_sync_tokens=True)
-    client = nio.AsyncClient(
-            Config.Matrix.server,
-            Config.Matrix.user,
-            device_id=Config.Bot.name,
-            store_path=Config.Bot.store_dir,
-            config=client_config)
-    ratstalker = RatStalker(client)
-    # creating a task for the sole possibility of notifying a .cancel()
-    stalk_task = asyncio.create_task(ratstalker.start_stalking())
-    try:
-        await stalk_task
-    except KeyboardInterrupt:
-        print("* Cancelling all tasks...")
-        stalk_task.cancel()
+class Main:
+    def __init__(self):
+        self.device_id = self._compute_device_id()
+
+    def _compute_device_id(self) -> str:
+        # mix of fixed platform infos... should be enough for us
+        sysinfo = os.uname()
+        return "{}@{}({})".format(
+                sysinfo.nodename,
+                sysinfo.sysname,
+                sysinfo.machine)
+
+    async def main(self):
+        if not os.path.isdir(Config.Bot.store_dir):
+            os.mkdir(Config.Bot.store_dir)
+        client_config=nio.ClientConfig(
+                store_name=Config.Bot.store_name,
+                store_sync_tokens=True)
+        client = nio.AsyncClient(
+                Config.Matrix.server,
+                Config.Matrix.user,
+                device_id=self.device_id,
+                store_path=Config.Bot.store_dir,
+                config=client_config)
+        ratstalker = RatStalker(client)
+        # creating a task for the sole possibility of notifying a .cancel()
+        stalk_task = asyncio.create_task(ratstalker.start_stalking())
+        try:
+            await stalk_task
+        except KeyboardInterrupt:
+            print("* Cancelling all tasks...")
+            stalk_task.cancel()
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        asyncio.run(Main().main())
     except KeyboardInterrupt:
         # handled by the main asyncio loop
         pass
