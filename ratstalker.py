@@ -29,7 +29,7 @@ class RatStalker:
                 nio.InviteEvent)
 
     async def start_stalking(self):
-        """start stalking!"""
+        """Start stalking!"""
         self._init_callbacks()
 
         await self.client.login(Config.Matrix.passwd)
@@ -40,13 +40,8 @@ class RatStalker:
                         Config.Matrix.room,
                         joinresp.message)
                     )
-            # enter the sync loop anyways and wait for an invite
-        try:
-            await self.client.sync_forever(None, full_state=False)
-        except asyncio.CancelledError:
-            # FIXME: graceful shutdown
-            print("* Terminating bot operations...")
-            await self.client.close()
+        # enter the sync loop anyways and wait for an invite
+        await self.client.sync_forever(None, full_state=False)
 
 
 
@@ -75,20 +70,19 @@ class Main:
                 store_path=Config.Bot.store_dir,
                 config=client_config)
         ratstalker = RatStalker(client)
-        # creating a task for the sole possibility of notifying a .cancel()
-        stalk_task = asyncio.create_task(ratstalker.start_stalking())
+
         try:
-            await stalk_task
-        except KeyboardInterrupt:
-            print("* Cancelling all tasks...")
-            stalk_task.cancel()
+            await asyncio.gather(ratstalker.start_stalking())
+        except asyncio.CancelledError:
+            print("* Terminating active tasks...")
+            await client.close()
 
 if __name__ == "__main__":
+    main = Main()
     try:
-        asyncio.run(Main().main())
+        asyncio.run(main.main())
     except KeyboardInterrupt:
-        # handled by the main asyncio loop
-        pass
+        print("* Shutting down...")
 
 # FIXME: Syncing should be configured in a way that we only reply to events
 # while we are online, i.e. only events since the login time are considered, so
