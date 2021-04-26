@@ -1,17 +1,25 @@
 """Callbacks for Matrix events"""
 
+import asyncio
+
 import nio
 
 from config import Config
 from src import commands
 from src import exceptions
+from src import messages
 
 
  
 class CallbackContext:
     """Additional context to pass to the callbacks"""
-    def __init__(self, client: nio.AsyncClient):
+    def __init__(self,
+            client: nio.AsyncClient,
+            sender: messages.MessageSender,
+            monitor_wakeup_event: asyncio.Event):
         self.client = client
+        self.sender = sender
+        self.monitor_wakeup_event = monitor_wakeup_event
 
 class EventCallback:
     """Base class for callbacks"""
@@ -38,7 +46,7 @@ class RoomMessageCallback(EventCallback):
             elif action == "listservers":
                 command = commands.ListServersCommand()
             elif action == "monitor":
-                command = commands.MonitorCommand(args)
+                command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
             elif action == "help":
                 command = commands.HelpCommand()
             else:
@@ -53,14 +61,7 @@ class RoomMessageCallback(EventCallback):
             except Exception as e:
                 reply = "Unexpected exception"
                 raise
-            await self.context.client.room_send(
-                    room.room_id,
-                    "m.room.message",
-                    {
-                        "msgtype"   : "m.text",
-                        "body"      : reply
-                        }
-                    )
+            await self.context.sender.send_room(messages.Message(reply))
 
 class RoomInviteCallback(EventCallback):
     """Callback for the InviteEvent"""

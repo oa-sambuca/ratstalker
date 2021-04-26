@@ -36,7 +36,12 @@ class Config:
         hosts       : dict  = {
                 "/N/City UK"            : ("151.236.222.109", 27966),
                 "/N/ALLMODES UK|FFA"    : ("151.236.222.109", 27961),
-                "/N/Duel UK"            : ("151.236.222.109", 27963)
+                "/N/Duel UK"            : ("151.236.222.109", 27963),
+                "/N/Deathmatch UK"      : ("151.236.222.109", 27960),
+                "/N/try hard UK|CTF"    : ("151.236.222.109", 27962),
+                "/N/INSTA CTF UK"       : ("151.236.222.109", 27965),
+                "/N/CTF UK"             : ("151.236.222.109", 27964),
+                "/N/INSTA DM UK"        : ("151.236.222.109", 27968)
                 }
         # show server if empty
         showempty   : bool  = True

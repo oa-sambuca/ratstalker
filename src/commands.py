@@ -2,6 +2,7 @@
 
 from typing import List
 import json
+import asyncio
 
 from deps.oaquery import oaquery
 
@@ -50,6 +51,10 @@ class ListServersCommand(Command):
 
 class MonitorCommand(Command):
     """Set or get the monitor option"""
+    def __init__(self, wakeup_event: asyncio.Event, args: List[str] = None):
+        super().__init__(args)
+        self.wakeup_event = wakeup_event
+
     async def execute(self) -> str:
         try:
             state = self.args[0].lower()
@@ -58,12 +63,16 @@ class MonitorCommand(Command):
         else:
             if state == "true":
                 Config.Bot.monitor = True
+                # restart the monitor task
+                await self.wakeup_event.set()
             elif state == "false":
                 Config.Bot.monitor = False
+                # stop the monitor task
+                await self.wakeup_event.clear()
         finally:
             return "Monitor: {}".format(Config.Bot.monitor)
 
 class HelpCommand(Command):
     """Show help"""
     async def execute(self) -> str:
-        return "usage: {} <query|listservers|monitor[true|false]|help>".format(Config.Bot.trigger)
+        return "usage: {} query|listservers|monitor[true|false]|help".format(Config.Bot.trigger)

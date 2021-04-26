@@ -11,6 +11,8 @@ import nio
 from config import Config
 from src import callbacks
 from src import exceptions
+from src import snapshot
+from src import messages
 
 
 
@@ -18,9 +20,14 @@ class RatStalker:
     """RatStalker bot class"""
     def __init__(self, client: nio.AsyncClient):
         self.client = client
+        self.sender = messages.MessageSender(client)
+        self.monitor_wakeup_event = asyncio.Event()
 
     def _init_callbacks(self):
-        context = callbacks.CallbackContext(self.client)
+        context = callbacks.CallbackContext(
+                self.client,
+                self.sender,
+                self.monitor_wakeup_event)
         self.client.add_event_callback(
                 callbacks.RoomMessageCallback(context),
                 nio.RoomMessageText)
@@ -30,8 +37,6 @@ class RatStalker:
 
     async def start_stalking(self):
         """Start stalking!"""
-        self._init_callbacks()
-
         await self.client.login(Config.Matrix.passwd)
         await self.client.set_displayname(Config.Bot.name)
         joinresp = await self.client.join(Config.Matrix.room)
@@ -40,8 +45,47 @@ class RatStalker:
                         Config.Matrix.room,
                         joinresp.message)
                     )
-        # enter the sync loop anyways and wait for an invite
-        await self.client.sync_forever(None, full_state=False)
+        # dummy sync to consume events arrived while offline
+        await self.client.sync(full_state=True)
+        self._init_callbacks()
+        try:
+            await asyncio.gather(
+                    self.client.sync_forever(None, full_state=True),
+                    self._monitor_servers())
+        except asyncio.CancelledError:
+            # cleaning local stuff
+            raise
+
+    async def _monitor_servers(self):
+        last_snapshot = snapshot.GlobalSnapshot().capture().dummyfy()
+        if Config.Bot.monitor:
+            self.monitor_wakeup_event.set()
+        while await self.monitor_wakeup_event.wait():
+            try:
+                snap = snapshot.GlobalSnapshot().capture()
+                for sname, ssnap in snap.servers_snaps.items():
+                    diff = ssnap.compare(last_snapshot.servers_snaps[sname])
+                    if diff.players_passed_threshold_up(ssnap.threshold):
+                        color = messages.ColorPalette.green
+                        text = "<b>{}</b>: <span data-mx-color={}>{} player{}</span> now".format(
+                                sname, color, diff.curr_players,
+                                '' if diff.curr_players == 1 else 's')
+                    elif diff.players_passed_threshold_down(ssnap.threshold):
+                        color = messages.ColorPalette.red
+                        text = "<b>{}</b>: <span data-mx-color={}>{} player{}</span> now".format(
+                                sname, color, diff.curr_players,
+                                '' if diff.curr_players == 1 else 's')
+                    else:
+                        text = None
+                    if text:
+                        message = messages.Message(text, text)
+                        print("* {}".format(message.text))
+                        await self.sender.send_room(message)
+                last_snapshot = snap
+            except KeyError:
+                # improve handling of servers in one snapshot but not in the other
+                pass
+            await asyncio.sleep(Config.Bot.monitor_time)
 
 
 
@@ -72,7 +116,7 @@ class Main:
         ratstalker = RatStalker(client)
 
         try:
-            await asyncio.gather(ratstalker.start_stalking())
+            await ratstalker.start_stalking()
         except asyncio.CancelledError:
             print("* Terminating active tasks...")
             await client.close()
@@ -83,24 +127,3 @@ if __name__ == "__main__":
         asyncio.run(main.main())
     except KeyboardInterrupt:
         print("* Shutting down...")
-
-# FIXME: Syncing should be configured in a way that we only reply to events
-# while we are online, i.e. only events since the login time are considered, so
-# we don't get flooded by old messages we already received, nor by the ones
-# arrived during offline time.
-# Sync tokens oth only solve half of the problem, since we still receive the
-# messages arrived while we were offline (which we don't care about anymore)
-#
-# btw it looks like full_state=False alone is not enough to discard old
-# messages (whether already synced or not) when we start syncing after login
-#
-# So, assuming we *must* use sync tokens, current cnfiguration is:
-# - set store_sync_tokens=True in ClientConfig()
-#   otherwise this is not automatically done
-# - set device_id in AsyncClient()
-#   otherwise a new device will be created everytime
-# - full_state=False in sync_forever()
-#   so that we discard events fired while we were offline (doesn't seem to be
-#   the case...)
-#
-# which in the end doesn't seem to work either...
