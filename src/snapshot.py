@@ -6,12 +6,6 @@ from deps.oaquery import oaquery
 
 
 
-class SnapshotConfig:
-    class Thresholds:
-        city    = 7
-        duel    = 1
-        default = 3
-
 class GlobalSnapshot:
     def __init__(self):
         self.servers_snaps: Dict[str, ServerSnapshot] = {}
@@ -24,11 +18,11 @@ class GlobalSnapshot:
             gametype = info.gametype().name
             # get rid of city asap :)
             if 'city' in servername.lower():
-                threshold = SnapshotConfig.Thresholds.city
+                threshold = Config.Thresholds.City
             elif gametype in ("TOURNAMENT", "MULTITOURNAMENT"):
-                threshold = SnapshotConfig.Thresholds.duel
+                threshold = Config.Thresholds.duel
             else:
-                threshold = SnapshotConfig.Thresholds.default
+                threshold = Config.Thresholds.default
 
             snapshot = ServerSnapshot(info, threshold)
             self.servers_snaps[servername] = snapshot

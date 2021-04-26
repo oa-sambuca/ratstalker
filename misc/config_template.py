@@ -29,6 +29,17 @@ class Config:
         # name of the store inside the store_dir
         store_name      : str   = "{}.db".format(name)
 
+    class Thresholds:
+        """Number of players on a server that are considered meaningful"""
+        # City
+        City            : int   = 8
+        # duel
+        duel            : int   = 1
+        # FFA
+        FFA             : int   = 6
+        # default
+        default         : int   = 4
+
     class OAQuery:
         """Configurations for oaquery library"""
         # hosts monitored by this bot
