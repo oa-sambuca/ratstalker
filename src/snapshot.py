@@ -7,101 +7,138 @@ from deps.oaquery import oaquery
 
 
 class GlobalSnapshot:
+    """Global snapshot containing the ServerSnapshots of all servers"""
     def __init__(self):
         self.servers_snaps: Dict[str, ServerSnapshot] = {}
 
     def capture(self) -> GlobalSnapshot:
-        """Capture a global snapshot, i.e. the snapshot of all the servers"""
+        """Capture a global snapshot"""
         infos: List[oaquery.ServerInfo] = oaquery.query_servers(Config.OAQuery.hosts.values())
         for info in infos:
             servername = info.name().getstr()
             gametype = info.gametype().name
             # get rid of city asap :)
             if 'city' in servername.lower():
-                threshold = Config.Thresholds.City
+                snapshot = CityServerSnapshot(info)
             elif gametype in ("TOURNAMENT", "MULTITOURNAMENT"):
-                threshold = Config.Thresholds.duel
+                snapshot = DuelServerSnapshot(info)
             else:
-                threshold = Config.Thresholds.default
+                snapshot = DefaultServerSnapshot(info)
 
-            snapshot = ServerSnapshot(info, threshold)
             self.servers_snaps[servername] = snapshot
         return self
 
-    def dummyfy(self) -> GlobalSnapshot:
-        """Get a dummy snapshot to be used as the first snapshot"""
-        # Mhhh, this feels like a dirty workaround... hopefully we find a
-        # better implementation
-        #
-        # This is needed because we may already be over threshold at start, and
-        # we would like to know that (also considering that there will be no
-        # notification until the threshold is crossed again). Just diffing
-        # between the first two regular snapshots would hilight no change, so
-        # we use DummyServerInfo to implemet a fake reset state
-        #
-        # This way we don't have to have to differentiate the code for the
-        # first snapshots evaluation and can take advantage of SnapshotDiff as
-        # usual
 
-        # still getting a real snapshot in order to not rely too much on the
-        # server names in the configs (a slightly different name and they won't
-        # compare)
-        for ssnap in self.servers_snaps.values():
-            # replace actual snapshots with the dummy one
-            ssnap.dummyfy()
-        return self
 
+# Server snapshot
 
 class ServerSnapshot:
-    def __init__(self, info: oaquery.ServerInfo, threshold: int):
+    """Base class for server snapshots"""
+    def __init__(self, info: oaquery.ServerInfo):
+        if type(self) is ServerSnapshot:
+            raise NotImplementedError
         self.info = info
-        self.threshold = threshold
 
     def compare(self, prev_snap: ServerSnapshot) -> SnapshotDiff:
-        """Compare with a previous snapshot"""
-        return SnapshotDiff(prev_snap, self)
+        """Compare with a previous snapshot
 
-    def dummyfy(self) -> ServerSnapshot:
+        Every subclass matches against appropriate relevance rules
+        """
+
+class DummyServerSnapshot(ServerSnapshot):
+    """Dummy snapshot to be used as first server snapshot"""
+    # NOTE: This is useful as fallback snapshot when there is no previous
+    # snapshot to compare against for a paticular server (like when the bot
+    # starts or when a server has just came up), so we use this empty
+    # DummyServerSnapshot with a DummyServerInfo providing some fallback
+    # values.
+    def __init__(self):
         self.info = DummyServerInfo()
-        return self
 
 class DummyServerInfo(oaquery.ServerInfo):
-    """Dummy infos to be used when dummyfying snapshots"""
+    """Dummy infos to be used in a DummyServerSnapshot"""
     # This class must override all of the attributes/methods that the
     # SnapshotDiff class operates with. Override the minimum of ServerInfo
     # class as much as it's necessary to fake a reset state from the
-    # SnapshotDiff point of view
+    # SnapshotDiff point of view (i.e. just override the attributes and methods
+    # used in the SnapshotDiff initializer)
     def __init__(self):
         pass
 
     def num_humans(self):
-        # at start we want to compare against 0 players to check the thresholds
         return 0
 
+class DuelServerSnapshot(ServerSnapshot):
+    def compare(self, prev_snap: ServerSnapshot) -> List[RelevanceRule]:
+        threshold = Config.Thresholds.duel
+        diff = SnapshotDiff(prev_snap, self)
+        diff.attach_rule(UnderThresholdRule(threshold)).attach_rule(OverThresholdRule(threshold))
+        return diff.evaluate_rules()
+
+class CityServerSnapshot(ServerSnapshot):
+    def compare(self, prev_snap: ServerSnapshot) -> List[RelevanceRule]:
+        threshold = Config.Thresholds.City
+        diff = SnapshotDiff(prev_snap, self)
+        diff.attach_rule(UnderThresholdRule(threshold)).attach_rule(OverThresholdRule(threshold))
+        return diff.evaluate_rules()
+
+class DefaultServerSnapshot(ServerSnapshot):
+    def compare(self, prev_snap: ServerSnapshot) -> List[RelevanceRule]:
+        threshold = Config.Thresholds.default
+        diff = SnapshotDiff(prev_snap, self)
+        diff.attach_rule(UnderThresholdRule(threshold)).attach_rule(OverThresholdRule(threshold))
+        return diff.evaluate_rules()
+
+
+
+# Relevance rules
+
+class RelevanceRule:
+    """Base class for a relevance rule
+
+    Relevance rules represent different rules to check for diff relevance
+    """
+    def __init__(self, *args):
+        if type(self) is RelevanceRule:
+            raise NotImplementedError
+
+    def evaluate(self, diff: SnapshotDiff) -> bool:
+        """Evaluate the rule on the diff"""
+
+class OverThresholdRule(RelevanceRule):
+    def __init__(self, threshold: int):
+        self.threshold = threshold
+
+    def evaluate(self, diff: SnapshotDiff) -> bool:
+        return (diff.prev_players < self.threshold and diff.curr_players >= self.threshold)
+
+class UnderThresholdRule(RelevanceRule):
+    def __init__(self, threshold: int):
+        self.threshold = threshold
+
+    def evaluate(self, diff: SnapshotDiff) -> bool:
+        return (diff.prev_players >= self.threshold and diff.curr_players < self.threshold)
+
+
+
+# Snapshot diff
+
 class SnapshotDiff:
-    """A diff between two server snapshots"""
+    """Class representing a diff between two server snapshots"""
     def __init__(self, prev: ServerSnapshot, curr: ServerSnapshot):
-        # remember to stay synced with DummyServerInfo
-        self.curr_players = curr.info.num_humans()
+        # extract all relevant infos involved in diffing
+        # NOTE: remember to stay synced with DummyServerInfo by overriding the
+        # attributes and methods accessed by prev in there
         self.prev_players = prev.info.num_humans()
 
-    def num_players_increased(self) -> bool:
-        return (self.curr_players - self.prev_players) > 0
+        self.curr_players = curr.info.num_humans()
+        self.relevance_rules: List[RelevanceRule] = []
 
-    def num_players_decreased(self) -> bool:
-        return (self.curr_players - self.prev_players) < 0
+    def attach_rule(self, rule: RelevanceRule) -> SnapshotDiff:
+        """Add a relevance rule to be later evaluated for this diff"""
+        self.relevance_rules.append(rule)
+        return self
 
-    def players_passed_threshold_up(self, threshold: int) -> bool:
-        return (self.prev_players < threshold and self.curr_players >= threshold)
-
-    def players_passed_threshold_down(self, threshold: int) -> bool:
-        return (self.prev_players >= threshold and self.curr_players < threshold)
-
-    def players_passed_threshold(self, threshold: int) -> bool:
-        return self.players_passed_threshold_up() or self.players_passed_threshold_down()
-    
-    def players_over_threshold(self, threshold: int) -> bool:
-        return self.curr_players >= threshold
-    
-    def players_under_threshold(self, threshold: int) -> bool:
-        return self.curr_players < threshold
+    def evaluate_rules(self) -> List[RelevanceRule]:
+        """Evaluate all of the relevance rules set for this diff"""
+        return [rule for rule in self.relevance_rules if rule.evaluate(self)]

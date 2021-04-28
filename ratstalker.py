@@ -22,6 +22,7 @@ class RatStalker:
         self.client = client
         self.sender = messages.MessageSender(client)
         self.monitor_wakeup_event = asyncio.Event()
+        self.last_snapshot = None
 
     def _init_callbacks(self):
         context = callbacks.CallbackContext(
@@ -57,35 +58,36 @@ class RatStalker:
             raise
 
     async def _monitor_servers(self):
-        last_snapshot = snapshot.GlobalSnapshot().capture().dummyfy()
         if Config.Bot.monitor:
             self.monitor_wakeup_event.set()
         while await self.monitor_wakeup_event.wait():
             try:
                 snap = snapshot.GlobalSnapshot().capture()
-                for sname, ssnap in snap.servers_snaps.items():
-                    diff = ssnap.compare(last_snapshot.servers_snaps[sname])
-                    if diff.players_passed_threshold_up(ssnap.threshold):
-                        color = messages.ColorPalette.green
-                        text = "<b>{}</b>: <span data-mx-color={}>{} player{}</span> now".format(
-                                sname, color, diff.curr_players,
-                                '' if diff.curr_players == 1 else 's')
-                    elif diff.players_passed_threshold_down(ssnap.threshold):
-                        color = messages.ColorPalette.red
-                        text = "<b>{}</b>: <span data-mx-color={}>{} player{}</span> now".format(
-                                sname, color, diff.curr_players,
-                                '' if diff.curr_players == 1 else 's')
-                    else:
-                        text = None
-                    if text:
-                        message = messages.Message(text, text)
-                        print("* {}".format(message.text))
-                        await self.sender.send_room(message)
-                last_snapshot = snap
-            except KeyError:
-                # improve handling of servers in one snapshot but not in the other
-                pass
+                await self._process_snapshot(snap)
+                self.last_snapshot = snap
+            except Exception:
+                raise
             await asyncio.sleep(Config.Bot.monitor_time)
+
+    async def _process_snapshot(self, snap: snapshot.GlobalSnapshot):
+        for sname, ssnap in snap.servers_snaps.items():
+            try:
+                matched_rules = ssnap.compare(self.last_snapshot.servers_snaps[sname])
+            except (AttributeError, KeyError):
+                # first snapshot is None or no snapshot named sname in last_snapshot
+                # => compare against a DummyServerSnapshot
+                matched_rules = ssnap.compare(snapshot.DummyServerSnapshot())
+            for rule in matched_rules:
+                ruletype = type(rule)
+                if ruletype is snapshot.OverThresholdRule:
+                    message = messages.OverThresholdMessage(sname, ssnap.info.num_humans())
+                elif ruletype is snapshot.UnderThresholdRule:
+                    message = messages.UnderThresholdMessage(sname, ssnap.info.num_humans())
+                else:
+                    print("! Unable to handle rule: {}".format(ruletype))
+                    continue
+                print("* {}".format(message.text))
+                await self.sender.send_room(message)
 
 
 

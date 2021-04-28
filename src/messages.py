@@ -14,9 +14,31 @@ class ColorPalette:
     purple  = "#cc99c9"
 
 class Message:
-    def __init__(self, text: str, text_formatted: str = None):
+    def __init__(self, text: str, html: str = None):
         self.text = text
-        self.text_formatted = text_formatted if text_formatted else text
+        self.html = html if html else text
+
+class OverThresholdMessage(Message):
+    """Message for the players over threshold change"""
+    text_template = "{}: {} player{} now"
+    html_template = "<b>{}</b>: <span data-mx-color="+ColorPalette.green+">{} player{}</span> now"
+
+    def __init__(self, servername: str, nplayers: int):
+        self.text = self.text_template.format(
+                servername, nplayers, '' if nplayers == 1 else 's')
+        self.html = self.html_template.format(
+                servername, nplayers, '' if nplayers == 1 else 's')
+
+class UnderThresholdMessage(Message):
+    """Message for the players under threshold change"""
+    text_template = "{}: {} player{} now"
+    html_template = "<b>{}</b>: <span data-mx-color="+ColorPalette.red+">{} player{}</span> now"
+
+    def __init__(self, servername: str, nplayers: int):
+        self.text = self.text_template.format(
+                servername, nplayers, '' if nplayers == 1 else 's')
+        self.html = self.html_template.format(
+                servername, nplayers, '' if nplayers == 1 else 's')
 
 class MessageSender:
     def __init__(self, client: nio.AsyncClient):
@@ -29,7 +51,7 @@ class MessageSender:
                 {
                     "msgtype"           : "m.notice" if notice else "m.text",
                     "body"              : message.text,
-                    "formatted_body"    : message.text_formatted,
+                    "formatted_body"    : message.html,
                     "format"            : "org.matrix.custom.html"
                     }
                 )
