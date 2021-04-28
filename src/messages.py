@@ -1,3 +1,5 @@
+from typing import List
+
 import nio
 
 from config import Config
@@ -20,14 +22,15 @@ class Message:
 
 class OverThresholdMessage(Message):
     """Message for the players over threshold change"""
-    text_template = "{}: {} player{} now"
-    html_template = "<b>{}</b>: <span data-mx-color="+ColorPalette.green+">{} player{}</span> now"
+    text_template = "{}: {} player{} now ({})"
+    html_template = "<b>{}</b>: <span data-mx-color="+ColorPalette.green+">{} player{}</span> now ({})"
 
-    def __init__(self, servername: str, nplayers: int):
+    def __init__(self, servername: str, nplayers: int, playerlist: List[str]):
+        players = ', '.join(playerlist)
         self.text = self.text_template.format(
-                servername, nplayers, '' if nplayers == 1 else 's')
+                servername, nplayers, '' if nplayers == 1 else 's', players)
         self.html = self.html_template.format(
-                servername, nplayers, '' if nplayers == 1 else 's')
+                servername, nplayers, '' if nplayers == 1 else 's', players)
 
 class UnderThresholdMessage(Message):
     """Message for the players under threshold change"""

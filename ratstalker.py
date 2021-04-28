@@ -80,7 +80,8 @@ class RatStalker:
             for rule in matched_rules:
                 ruletype = type(rule)
                 if ruletype is snapshot.OverThresholdRule:
-                    message = messages.OverThresholdMessage(sname, ssnap.info.num_humans())
+                    players =  [player.name.getstr() for player in ssnap.info.likely_human_players()]
+                    message = messages.OverThresholdMessage(sname, ssnap.info.num_humans(), players)
                 elif ruletype is snapshot.UnderThresholdRule:
                     message = messages.UnderThresholdMessage(sname, ssnap.info.num_humans())
                 else:
