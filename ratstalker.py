@@ -16,6 +16,13 @@ from src import messages
 
 
 
+banner = """
+░█▀▄░█▀█░▀█▀░█▀▀░▀█▀░█▀█░█░░░█░█░█▀▀░█▀▄
+░█▀▄░█▀█░░█░░▀▀█░░█░░█▀█░█░░░█▀▄░█▀▀░█▀▄
+░▀░▀░▀░▀░░▀░░▀▀▀░░▀░░▀░▀░▀▀▀░▀░▀░▀▀▀░▀░▀
+           A Matrix bot that stalks rats
+"""
+
 class RatStalker:
     """RatStalker bot class"""
     def __init__(self, client: nio.AsyncClient):
@@ -46,6 +53,8 @@ class RatStalker:
                         Config.Matrix.room,
                         joinresp.message)
                     )
+        else:
+            print("+ Joined room: {}".format(Config.Matrix.room))
         # dummy sync to consume events arrived while offline
         await self.client.sync(full_state=True)
         self._init_callbacks()
@@ -108,6 +117,7 @@ class Main:
                 sysinfo.machine)
 
     async def main(self):
+        print(banner)
         if not os.path.isdir(Config.Bot.store_dir):
             os.mkdir(Config.Bot.store_dir)
         client_config=nio.ClientConfig(
