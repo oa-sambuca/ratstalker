@@ -43,6 +43,18 @@ class UnderThresholdMessage(Message):
         self.html = self.html_template.format(
                 servername, nplayers, '' if nplayers == 1 else 's')
 
+class DurationMessage(Message):
+    """Message for the match duration"""
+    text_template = "{} {} still having a lot of fun on {}"
+    html_template = "{} {} still having a lot of fun on <b>{}</b>"
+
+    def __init__(self, servername: str, playerlist: List[str]):
+        players = ', '.join(playerlist)
+        self.text = self.text_template.format(
+                players, 'is' if len(playerlist) == 1 else 'are', servername)
+        self.html = self.html_template.format(
+                players, 'is' if len(playerlist) == 1 else 'are', servername)
+
 class MessageSender:
     def __init__(self, client: nio.AsyncClient):
         self.client = client

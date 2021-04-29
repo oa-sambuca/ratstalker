@@ -22,7 +22,7 @@ class RatStalker:
         self.client = client
         self.sender = messages.MessageSender(client)
         self.monitor_wakeup_event = asyncio.Event()
-        self.last_snapshot = None
+        self.last_snapshot = snapshot.GlobalSnapshot()
 
     def _init_callbacks(self):
         context = callbacks.CallbackContext(
@@ -62,21 +62,21 @@ class RatStalker:
             self.monitor_wakeup_event.set()
         while await self.monitor_wakeup_event.wait():
             try:
-                snap = snapshot.GlobalSnapshot().capture()
+                snap = snapshot.GlobalSnapshot().capture(self.last_snapshot)
                 await self._process_snapshot(snap)
                 self.last_snapshot = snap
             except Exception:
                 raise
-            await asyncio.sleep(Config.Bot.monitor_time)
+            await asyncio.sleep(Config.Bot.monitor_time * 60)
 
     async def _process_snapshot(self, snap: snapshot.GlobalSnapshot):
         for sname, ssnap in snap.servers_snaps.items():
             try:
                 matched_rules = ssnap.compare(self.last_snapshot.servers_snaps[sname])
-            except (AttributeError, KeyError):
-                # first snapshot is None or no snapshot named sname in last_snapshot
+            except KeyError:
+                # No snapshot named sname in last_snapshot (e.g. at start)
                 # => compare against a DummyServerSnapshot
-                matched_rules = ssnap.compare(snapshot.DummyServerSnapshot())
+                matched_rules = ssnap.compare(snapshot.DummyServerSnapshot(ssnap.timestamp))
             for rule in matched_rules:
                 ruletype = type(rule)
                 if ruletype is snapshot.OverThresholdRule:
@@ -84,6 +84,9 @@ class RatStalker:
                     message = messages.OverThresholdMessage(sname, ssnap.info.num_humans(), players)
                 elif ruletype is snapshot.UnderThresholdRule:
                     message = messages.UnderThresholdMessage(sname, ssnap.info.num_humans())
+                elif ruletype is snapshot.DurationRule:
+                    players =  [player.name.getstr() for player in ssnap.info.likely_human_players()]
+                    message = messages.DurationMessage(sname, players)
                 else:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue

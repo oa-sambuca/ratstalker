@@ -22,8 +22,8 @@ class Config:
         trigger         : str   = "!stalk"
         # monitor the hosts and periodically notify the room
         monitor         : bool  = True
-        # seconds between host queries in monitor mode
-        monitor_time    : int   = 60
+        # minutes between host queries in monitor mode
+        monitor_time    : int   = 1
         # path to the bot store
         store_dir       : str   = "nio_store/"
         # name of the store inside the store_dir
@@ -39,6 +39,8 @@ class Config:
         FFA             : int   = 6
         # default
         default         : int   = 4
+        # minutes after which a duration notification can be sent
+        duration_time   : int   = 30
 
     class OAQuery:
         """Configurations for oaquery library"""
