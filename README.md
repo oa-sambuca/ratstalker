@@ -32,13 +32,17 @@ Main dependencies:
 Install with:
 
 ```bash
-# libolm library, e.g. for debian-based systems:
-apt install libolm-dev
+# dev libraries, e.g. for debian-based systems:
+apt install python3-dev libolm-dev
 # better using virtual environments
 python3 -m venv venv
 source venv/bin/activate
+pip install wheel
 pip install -r requirements.txt
 ```
+
+Some more dev libraries needed to build the requirements may be missing. Just
+install them accordingly in your system's package manager.
 
 ## Configuration
 
