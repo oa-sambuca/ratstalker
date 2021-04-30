@@ -60,7 +60,8 @@ class RatStalker:
         self._init_callbacks()
         try:
             await asyncio.gather(
-                    self.client.sync_forever(None, full_state=True),
+                    self.client.sync_forever(
+                        None, full_state=True, loop_sleep_time=Config.Bot.sync_time),
                     self._monitor_servers())
         except asyncio.CancelledError:
             # cleaning local stuff

@@ -24,6 +24,9 @@ class Config:
         monitor         : bool  = True
         # minutes between host queries in monitor mode
         monitor_time    : int   = 1
+        # time between two syncs with the homeserver (miliseconds or None)
+        # decrease for higher responsiveness, increase for lower resources usage
+        sync_time       : int   = 500
         # path to the bot store
         store_dir       : str   = "nio_store/"
         # name of the store inside the store_dir
