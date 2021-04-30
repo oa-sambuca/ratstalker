@@ -3,6 +3,7 @@ from typing import List
 import nio
 
 from config import Config
+from deps.oaquery.oaquery import ArenaString
 
 
 
@@ -23,37 +24,47 @@ class Message:
 class OverThresholdMessage(Message):
     """Message for the players over threshold change"""
     text_template = "{}: {} player{} now ({})"
-    html_template = "<b>{}</b>: <span data-mx-color="+ColorPalette.green+">{} player{}</span> now ({})"
+    html_template = "<b>{}</b>: {} player{} now ({})"
 
-    def __init__(self, servername: str, nplayers: int, playerlist: List[str]):
-        players = ', '.join(playerlist)
+    def __init__(self, servername: ArenaString, nplayers: int, playerlist: List[ArenaString]):
+        players = ', '.join([player.getstr() for player in playerlist])
         self.text = self.text_template.format(
-                servername, nplayers, '' if nplayers == 1 else 's', players)
+                servername.getstr(), nplayers, '' if nplayers == 1 else 's', players)
+        players = ', '.join([player.getstr(True) for player in playerlist])
+        self.term = self.text_template.format(
+                servername.getstr(True), nplayers, '' if nplayers == 1 else 's', players)
+        players = ', '.join([player.gethtml() for player in playerlist])
         self.html = self.html_template.format(
-                servername, nplayers, '' if nplayers == 1 else 's', players)
+                servername.gethtml(), nplayers, '' if nplayers == 1 else 's', players)
 
 class UnderThresholdMessage(Message):
     """Message for the players under threshold change"""
     text_template = "{}: {} player{} now"
-    html_template = "<b>{}</b>: <span data-mx-color="+ColorPalette.red+">{} player{}</span> now"
+    html_template = "<b>{}</b>: {} player{} now"
 
-    def __init__(self, servername: str, nplayers: int):
+    def __init__(self, servername: ArenaString, nplayers: int):
         self.text = self.text_template.format(
-                servername, nplayers, '' if nplayers == 1 else 's')
+                servername.getstr(), nplayers, '' if nplayers == 1 else 's')
+        self.term = self.text_template.format(
+                servername.getstr(True), nplayers, '' if nplayers == 1 else 's')
         self.html = self.html_template.format(
-                servername, nplayers, '' if nplayers == 1 else 's')
+                servername.gethtml(), nplayers, '' if nplayers == 1 else 's')
 
 class DurationMessage(Message):
     """Message for the match duration"""
     text_template = "{} {} still having a lot of fun on {}"
     html_template = "{} {} still having a lot of fun on <b>{}</b>"
 
-    def __init__(self, servername: str, playerlist: List[str]):
-        players = ', '.join(playerlist)
+    def __init__(self, servername: ArenaString, playerlist: List[ArenaString]):
+        players = ', '.join([player.getstr() for player in playerlist])
         self.text = self.text_template.format(
-                players, 'is' if len(playerlist) == 1 else 'are', servername)
+                players, 'is' if len(playerlist) == 1 else 'are', servername.getstr())
+        players = ', '.join([player.getstr(True) for player in playerlist])
+        self.term = self.text_template.format(
+                players, 'is' if len(playerlist) == 1 else 'are', servername.getstr(True))
+        players = ', '.join([player.gethtml() for player in playerlist])
         self.html = self.html_template.format(
-                players, 'is' if len(playerlist) == 1 else 'are', servername)
+                players, 'is' if len(playerlist) == 1 else 'are', servername.gethtml())
 
 class MessageSender:
     def __init__(self, client: nio.AsyncClient):

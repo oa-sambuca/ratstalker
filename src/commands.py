@@ -1,7 +1,6 @@
 """Commands processed by the bot"""
 
 from typing import List
-import json
 import asyncio
 
 from deps.oaquery import oaquery
@@ -32,22 +31,22 @@ class QueryCommand(Command):
         resp = {}
         for info in infos:
             resp.update({
-                    info.name().getstr() : {
+                    info.name().gethtml() : {
                         "map"       : info.map(),
                         "game"      : info.game(),
                         "nplayers"  : "{}/{}/{}".format(
                             info.num_humans(),
                             info.num_clients(),
                             info.maxclients()),
-                        "players"   : [player.name.getstr() for player in info.likely_human_players()]
+                        "players"   : [player.name.gethtml() for player in info.likely_human_players()]
                         }
                     })
-        return json.dumps(resp, indent=2)
+        return str(resp)
 
 class ListServersCommand(Command):
     """List all configured OA servers"""
     async def execute(self) -> str:
-        return json.dumps(Config.OAQuery.hosts, indent=2)
+        return str(Config.OAQuery.hosts)
 
 class MonitorCommand(Command):
     """Set or get the monitor option"""

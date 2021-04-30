@@ -80,9 +80,10 @@ class RatStalker:
             await asyncio.sleep(Config.Bot.monitor_time * 60)
 
     async def _process_snapshot(self, snap: snapshot.GlobalSnapshot):
-        for sname, ssnap in snap.servers_snaps.items():
+        for ssnap in snap.servers_snaps.values():
+            sname = ssnap.info.name()
             try:
-                matched_rules = ssnap.compare(self.last_snapshot.servers_snaps[sname])
+                matched_rules = ssnap.compare(self.last_snapshot.servers_snaps[sname.getstr()])
             except KeyError:
                 # No snapshot named sname in last_snapshot (e.g. at start)
                 # => compare against a DummyServerSnapshot
@@ -90,17 +91,17 @@ class RatStalker:
             for rule in matched_rules:
                 ruletype = type(rule)
                 if ruletype is snapshot.OverThresholdRule:
-                    players =  [player.name.getstr() for player in ssnap.info.likely_human_players()]
+                    players =  [player.name for player in ssnap.info.likely_human_players()]
                     message = messages.OverThresholdMessage(sname, ssnap.info.num_humans(), players)
                 elif ruletype is snapshot.UnderThresholdRule:
                     message = messages.UnderThresholdMessage(sname, ssnap.info.num_humans())
                 elif ruletype is snapshot.DurationRule:
-                    players =  [player.name.getstr() for player in ssnap.info.likely_human_players()]
+                    players =  [player.name for player in ssnap.info.likely_human_players()]
                     message = messages.DurationMessage(sname, players)
                 else:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
-                print("* {}".format(message.text))
+                print("* {}".format(message.term))
                 await self.sender.send_room(message)
 
 
