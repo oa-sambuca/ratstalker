@@ -108,7 +108,7 @@ class RatStalker:
                 else:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
-                print("* {}".format(message.term))
+                print("{}".format(message.term))
                 await self.context.message_sender.send_room(message)
 
 
