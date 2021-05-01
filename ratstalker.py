@@ -88,7 +88,7 @@ class RatStalker:
 
     async def _process_snapshot(self, snap: snapshot.GlobalSnapshot):
         for ssnap in snap.servers_snaps.values():
-            sname = ssnap.info.name()
+            sname = ssnap.info.name().strip()
             try:
                 matched_rules = ssnap.compare(self.context.last_snapshot.servers_snaps[sname.getstr()])
             except KeyError:

@@ -43,7 +43,6 @@ class OverThresholdMessage(Message):
     html_template = "<font color="+HtmlPalette.green+">●</font> <b>{}</b>: {} player{} now ({})"
 
     def __init__(self, servername: ArenaString, nplayers: int, playerlist: List[ArenaString]):
-        servername.strip()
         players = ', '.join([player.getstr() for player in playerlist])
         self.text = self.text_template.format(
                 servername.getstr(), nplayers, '' if nplayers == 1 else 's', players)
@@ -63,7 +62,6 @@ class UnderThresholdMessage(Message):
     html_template = "<font color="+HtmlPalette.red+">●</font> <b>{}</b>: {} player{} now"
 
     def __init__(self, servername: ArenaString, nplayers: int):
-        servername.strip()
         self.text = self.text_template.format(
                 servername.getstr(), nplayers, '' if nplayers == 1 else 's')
 
@@ -80,7 +78,6 @@ class DurationMessage(Message):
     html_template = "<font color="+HtmlPalette.cyan+">●</font> {} {} still having a lot of fun on <b>{}</b>"
 
     def __init__(self, servername: ArenaString, playerlist: List[ArenaString]):
-        servername.strip()
         players = ', '.join([player.getstr() for player in playerlist])
         self.text = self.text_template.format(
                 players, 'is' if len(playerlist) == 1 else 'are', servername.getstr())
