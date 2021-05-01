@@ -8,22 +8,13 @@ from config import Config
 from src import commands
 from src import exceptions
 from src import messages
+from ratstalker import BotContext
 
 
  
-class CallbackContext:
-    """Additional context to pass to the callbacks"""
-    def __init__(self,
-            client: nio.AsyncClient,
-            sender: messages.MessageSender,
-            monitor_wakeup_event: asyncio.Event):
-        self.client = client
-        self.sender = sender
-        self.monitor_wakeup_event = monitor_wakeup_event
-
 class EventCallback:
     """Base class for callbacks"""
-    def __init__(self, context: CallbackContext):
+    def __init__(self, context: BotContext):
         if type(self) is EventCallback:
             raise NotImplementedError()
         self.context = context
@@ -42,9 +33,7 @@ class RoomMessageCallback(EventCallback):
                 action = "help"
 
             if action == "query":
-                command = commands.QueryCommand()
-            elif action == "listservers":
-                command = commands.ListServersCommand()
+                command = commands.QueryCommand(self.context.last_snapshot)
             elif action == "monitor":
                 command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
             elif action == "help":
@@ -61,7 +50,8 @@ class RoomMessageCallback(EventCallback):
             except Exception as e:
                 reply = "Unexpected exception"
                 raise
-            await self.context.sender.send_room(messages.Message(reply))
+            message = messages.Message(reply)
+            await self.context.message_sender.send_room(message)
 
 class RoomInviteCallback(EventCallback):
     """Callback for the InviteEvent"""

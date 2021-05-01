@@ -23,31 +23,38 @@ banner = """
            A Matrix bot that stalks rats
 """
 
+class BotContext:
+    """Bot context also shared with callbacks"""
+    def __init__(self,
+            client: nio.AsyncClient,
+            last_snapshot: snapshot.GlobalSnapshot,
+            monitor_wakeup_event: asyncio.Event):
+        self.client = client
+        self.last_snapshot = last_snapshot
+        self.monitor_wakeup_event = monitor_wakeup_event
+        self.message_sender = messages.MessageSender(client)
+
 class RatStalker:
     """RatStalker bot class"""
     def __init__(self, client: nio.AsyncClient):
-        self.client = client
-        self.sender = messages.MessageSender(client)
-        self.monitor_wakeup_event = asyncio.Event()
-        self.last_snapshot = snapshot.GlobalSnapshot()
+        self.context = BotContext(
+                client,
+                snapshot.GlobalSnapshot(),
+                asyncio.Event())
 
     def _init_callbacks(self):
-        context = callbacks.CallbackContext(
-                self.client,
-                self.sender,
-                self.monitor_wakeup_event)
-        self.client.add_event_callback(
-                callbacks.RoomMessageCallback(context),
+        self.context.client.add_event_callback(
+                callbacks.RoomMessageCallback(self.context),
                 nio.RoomMessageText)
-        self.client.add_event_callback(
-                callbacks.RoomInviteCallback(context),
+        self.context.client.add_event_callback(
+                callbacks.RoomInviteCallback(self.context),
                 nio.InviteEvent)
 
     async def start_stalking(self):
         """Start stalking!"""
-        await self.client.login(Config.Matrix.passwd)
-        await self.client.set_displayname(Config.Bot.name)
-        joinresp = await self.client.join(Config.Matrix.room)
+        await self.context.client.login(Config.Matrix.passwd)
+        await self.context.client.set_displayname(Config.Bot.name)
+        joinresp = await self.context.client.join(Config.Matrix.room)
         if type(joinresp) is nio.responses.JoinError:
             print("- Could not join room {}: {}".format(
                         Config.Matrix.room,
@@ -56,11 +63,11 @@ class RatStalker:
         else:
             print("+ Joined room: {}".format(Config.Matrix.room))
         # dummy sync to consume events arrived while offline
-        await self.client.sync(full_state=True)
+        await self.context.client.sync(full_state=True)
         self._init_callbacks()
         try:
             await asyncio.gather(
-                    self.client.sync_forever(
+                    self.context.client.sync_forever(
                         None, full_state=True, loop_sleep_time=Config.Bot.sync_time),
                     self._monitor_servers())
         except asyncio.CancelledError:
@@ -69,12 +76,12 @@ class RatStalker:
 
     async def _monitor_servers(self):
         if Config.Bot.monitor:
-            self.monitor_wakeup_event.set()
-        while await self.monitor_wakeup_event.wait():
+            self.context.monitor_wakeup_event.set()
+        while await self.context.monitor_wakeup_event.wait():
             try:
-                snap = snapshot.GlobalSnapshot().capture(self.last_snapshot)
+                snap = snapshot.GlobalSnapshot().capture(self.context.last_snapshot)
                 await self._process_snapshot(snap)
-                self.last_snapshot = snap
+                self.context.last_snapshot = snap
             except Exception:
                 raise
             await asyncio.sleep(Config.Bot.monitor_time * 60)
@@ -83,7 +90,7 @@ class RatStalker:
         for ssnap in snap.servers_snaps.values():
             sname = ssnap.info.name()
             try:
-                matched_rules = ssnap.compare(self.last_snapshot.servers_snaps[sname.getstr()])
+                matched_rules = ssnap.compare(self.context.last_snapshot.servers_snaps[sname.getstr()])
             except KeyError:
                 # No snapshot named sname in last_snapshot (e.g. at start)
                 # => compare against a DummyServerSnapshot
@@ -102,7 +109,7 @@ class RatStalker:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
                 print("* {}".format(message.term))
-                await self.sender.send_room(message)
+                await self.context.message_sender.send_room(message)
 
 
 

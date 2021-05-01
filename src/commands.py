@@ -7,6 +7,7 @@ from deps.oaquery import oaquery
 
 from config import Config
 from src import exceptions
+from src import snapshot
 
 
 
@@ -26,8 +27,12 @@ class Command:
 
 class QueryCommand(Command):
     """Query all configured OA servers"""
+    def __init__(self, snapshot: snapshot.GlobalSnapshot):
+        super().__init__()
+        self.snapshot = snapshot
+
     async def execute(self) -> str:
-        infos: List[oaquery.ServerInfo] = oaquery.query_servers(Config.OAQuery.hosts.values())
+        infos: List[oaquery.ServerInfo] = [s.info for s in self.snapshot.servers_snaps.values()]
         resp = {}
         for info in infos:
             resp.update({
@@ -42,11 +47,6 @@ class QueryCommand(Command):
                         }
                     })
         return str(resp)
-
-class ListServersCommand(Command):
-    """List all configured OA servers"""
-    async def execute(self) -> str:
-        return str(Config.OAQuery.hosts)
 
 class MonitorCommand(Command):
     """Set or get the monitor option"""
@@ -74,4 +74,4 @@ class MonitorCommand(Command):
 class HelpCommand(Command):
     """Show help"""
     async def execute(self) -> str:
-        return "usage: {} query|listservers|monitor[true|false]|help".format(Config.Bot.trigger)
+        return "usage: {} query|monitor[true|false]|help".format(Config.Bot.trigger)
