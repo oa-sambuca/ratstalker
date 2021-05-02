@@ -16,7 +16,7 @@ class GlobalSnapshot:
     def capture(self, oldsnap: GlobalSnapshot) -> GlobalSnapshot:
         """Capture a global snapshot"""
         self.timestamp = time.time()
-        infos: List[oaquery.ServerInfo] = oaquery.query_servers(Config.OAQuery.hosts.values())
+        infos: List[oaquery.ServerInfo] = oaquery.query_servers(Config.OAQuery.hosts)
         for info in infos:
             servername = info.name().strip().getstr()
             gametype = info.gametype().name

@@ -48,24 +48,25 @@ class Config:
     class OAQuery:
         """Configurations for oaquery library"""
         # hosts monitored by this bot
-        # {"server_name" : ("address", port),...}
-        hosts       : dict  = {
-                "ciggarat - no ratassness"  : ("96.126.107.177",  27969),
-                "/N/ALLMODES"               : ("96.126.107.177",  27200),
-                "/N/Deathmatch"             : ("96.126.107.177",  27978),
-                "/N/Duel"                   : ("96.126.107.177",  27965),
-                "/N/silly"                  : ("96.126.107.177",  27967),
-                "/N/Treasures"              : ("96.126.107.177",  27981),
-                "/N/try hard"               : ("96.126.107.177",  27973),
-                "/N/City UK"                : ("151.236.222.109", 27966),
-                "/N/ALLMODES UK|FFA"        : ("151.236.222.109", 27961),
-                "/N/Duel UK"                : ("151.236.222.109", 27963),
-                "/N/Deathmatch UK"          : ("151.236.222.109", 27960),
-                "/N/try hard UK|CTF"        : ("151.236.222.109", 27962),
-                "/N/INSTA CTF UK"           : ("151.236.222.109", 27965),
-                "/N/CTF UK"                 : ("151.236.222.109", 27964),
-                "/N/INSTA DM UK"            : ("151.236.222.109", 27968)
-                }
+        # [("address", port),...]
+        hosts       : list  = [
+                ("96.126.107.177",  27969),     # ciggarat - no ratassness
+                ("96.126.107.177",  27200),     # /N/ALLMODES
+                ("96.126.107.177",  27978),     # /N/Deathmatch
+                ("96.126.107.177",  27965),     # /N/Duel
+                ("96.126.107.177",  27967),     # /N/silly
+                ("96.126.107.177",  27981),     # /N/Treasures
+                ("96.126.107.177",  27973),     # /N/try hard
+                ("96.126.107.177",  27201),     # /N/CA|CA
+                ("151.236.222.109", 27966),     # /N/City UK
+                ("151.236.222.109", 27961),     # /N/ALLMODES UK|FFA
+                ("151.236.222.109", 27963),     # /N/Duel UK
+                ("151.236.222.109", 27960),     # /N/Deathmatch UK
+                ("151.236.222.109", 27962),     # /N/try hard UK|CTF
+                ("151.236.222.109", 27965),     # /N/INSTA CTF UK
+                ("151.236.222.109", 27964),     # /N/CTF UK
+                ("151.236.222.109", 27968)      # /N/INSTA DM UK
+                ]
         # show server if empty
         showempty   : bool  = True
         # show colors
