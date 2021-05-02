@@ -26,13 +26,14 @@ class Command:
         """
 
 class QueryCommand(Command):
-    """Query all configured OA servers"""
-    def __init__(self, snapshot: snapshot.GlobalSnapshot):
-        super().__init__()
+    """Query all configured OA servers, optionally by keyword"""
+    def __init__(self, snapshot: snapshot.GlobalSnapshot, args: List[str] = None):
+        super().__init__(args)
         self.snapshot = snapshot
 
     async def execute(self) -> str:
-        infos: List[oaquery.ServerInfo] = [s.info for s in self.snapshot.servers_snaps.values()]
+        infos = [s.info for s in self.snapshot.servers_snaps.values() if
+                all(k in s.info.name().getstr().lower() for k in self.args)]
         resp = {}
         for info in infos:
             resp.update({
@@ -74,4 +75,4 @@ class MonitorCommand(Command):
 class HelpCommand(Command):
     """Show help"""
     async def execute(self) -> str:
-        return "usage: {} query|monitor[true|false]|help".format(Config.Bot.name)
+        return "usage: {} query[ keywords]|monitor[ true|false]|help".format(Config.Bot.name)
