@@ -18,8 +18,6 @@ class Config:
         """Configurations for the bot"""
         # public name for the bot
         name            : str   = "RatStalker"
-        # bot trigger string
-        trigger         : str   = "!stalk"
         # monitor the hosts and periodically notify the room
         monitor         : bool  = True
         # minutes between host queries in monitor mode

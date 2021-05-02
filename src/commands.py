@@ -74,4 +74,4 @@ class MonitorCommand(Command):
 class HelpCommand(Command):
     """Show help"""
     async def execute(self) -> str:
-        return "usage: {} query|monitor[true|false]|help".format(Config.Bot.trigger)
+        return "usage: {} query|monitor[true|false]|help".format(Config.Bot.name)

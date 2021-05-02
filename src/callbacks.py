@@ -22,7 +22,7 @@ class EventCallback:
 class RoomMessageCallback(EventCallback):
     """Callback for the RoomMessageText event"""
     async def __call__(self, room: nio.MatrixRoom, event: nio.RoomMessageText):
-        if (event.body.startswith(Config.Bot.trigger)):
+        if (event.body.startswith(Config.Bot.name)):
             print("+ Got command from {}: {}".format(event.sender, event.body))
             try:
                 cmd = event.body.split()[1:]
