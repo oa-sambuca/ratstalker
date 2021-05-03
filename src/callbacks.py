@@ -33,7 +33,9 @@ class RoomMessageCallback(EventCallback):
                 action = "help"
 
             if action == "query":
-                command = commands.QueryCommand(self.context.last_snapshot, args)
+                command = commands.QueryCommand(self.context.last_snapshot, True, args)
+            elif action == "stalk":
+                command = commands.QueryCommand(self.context.last_snapshot, False, args)
             elif action == "monitor":
                 command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
             elif action == "help":

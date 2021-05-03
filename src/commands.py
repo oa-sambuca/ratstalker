@@ -27,15 +27,17 @@ class Command:
 
 class QueryCommand(Command):
     """Query all configured OA servers, optionally by keyword"""
-    def __init__(self, snapshot: snapshot.GlobalSnapshot, args: List[str] = None):
+    def __init__(self, snapshot: snapshot.GlobalSnapshot, by_servername: bool = True, args: List[str] = None):
         super().__init__(args)
         self.snapshot = snapshot
+        self.by_servername = by_servername
 
     async def execute(self) -> str:
-        infos = [s.info for s in self.snapshot.servers_snaps.values() if
-                all(k in s.info.name().getstr().lower() for k in self.args)]
+        snaps = (self.snapshot.filter_by_servername(self.args) if self.by_servername else
+        self.snapshot.filter_by_players(self.args))
+
         resp = {}
-        for info in infos:
+        for info in [s.info for s in snaps]:
             resp.update({
                     info.name().gethtml() : {
                         "map"       : info.map(),
@@ -47,7 +49,7 @@ class QueryCommand(Command):
                         "players"   : [player.name.gethtml() for player in info.likely_human_players()]
                         }
                     })
-        return str(resp)
+        return str(resp) if resp else "No match for: {}".format(', '.join(self.args))
 
 class MonitorCommand(Command):
     """Set or get the monitor option"""
@@ -75,4 +77,4 @@ class MonitorCommand(Command):
 class HelpCommand(Command):
     """Show help"""
     async def execute(self) -> str:
-        return "usage: {} query[ keywords]|monitor[ true|false]|help".format(Config.Bot.name)
+        return "usage: {} query[ keywords]|stalk players|monitor[ true|false]|help".format(Config.Bot.name)

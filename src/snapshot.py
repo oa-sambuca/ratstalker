@@ -35,6 +35,24 @@ class GlobalSnapshot:
             self.servers_snaps[servername] = snapshot
         return self
 
+    def filter_by_servername(self, patterns: List[str]) -> List[ServerSnapshot]:
+        """Return a list of server shanpshots with a name matching patterns
+
+        Patterns are and-ed
+        """
+        return [s for s in self.servers_snaps.values() if
+                all(k in s.info.name().getstr().lower() for k in patterns)]
+
+    def filter_by_players(self, patterns: List[str]) -> List[ServerSnapshot]:
+        """Return a list of server snapshots with players matching patterns
+
+        Patterns are or-ed
+        """
+        return [s for s in self.servers_snaps.values() if
+                any(k in x for x in [n.getstr().lower()
+                    for n in [p.name for p in s.info.likely_human_players()]]
+                    for k in patterns)]
+
 
 
 # Server snapshot
