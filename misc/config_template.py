@@ -66,7 +66,7 @@ class Config:
                 ("151.236.222.109", 27968)      # /N/INSTA DM UK
                 ]
         # show server if empty
-        showempty   : bool  = True
+        showempty   : bool  = False
         # show colors
         showcolors  : bool  = True
         # show bots

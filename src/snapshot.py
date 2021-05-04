@@ -35,13 +35,14 @@ class GlobalSnapshot:
             self.servers_snaps[servername] = snapshot
         return self
 
-    def filter_by_servername(self, patterns: List[str]) -> List[ServerSnapshot]:
+    def filter_by_servername(self, patterns: List[str], show_empty = Config.OAQuery.showempty) -> List[ServerSnapshot]:
         """Return a list of server shanpshots with a name matching patterns
 
         Patterns are and-ed
         """
         return [s for s in self.servers_snaps.values() if
-                all(k in s.info.name().getstr().lower() for k in patterns)]
+                (all(k in s.info.name().getstr().lower() for k in patterns) and
+                    (show_empty or s.info.num_humans()))]
 
     def filter_by_players(self, patterns: List[str]) -> List[ServerSnapshot]:
         """Return a list of server snapshots with players matching patterns
