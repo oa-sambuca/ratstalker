@@ -18,7 +18,7 @@ class GlobalSnapshot:
         self.timestamp = time.time()
         infos: List[oaquery.ServerInfo] = oaquery.query_servers(Config.OAQuery.hosts)
         for info in infos:
-            servername = info.name().strip().getstr()
+            servername = info.name().getstr()
             gametype = info.gametype().name
             try:
                 last_threshold = oldsnap.servers_snaps[servername].last_threshold

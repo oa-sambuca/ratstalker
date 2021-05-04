@@ -33,9 +33,9 @@ class RoomMessageCallback(EventCallback):
                 action = "help"
 
             if action == "query":
-                command = commands.QueryCommand(self.context.last_snapshot, True, args)
+                command = commands.QueryCommand(self.context.last_snapshot, args)
             elif action == "stalk":
-                command = commands.QueryCommand(self.context.last_snapshot, False, args)
+                command = commands.StalkCommand(self.context.last_snapshot, args)
             elif action == "monitor":
                 command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
             elif action == "help":
@@ -44,15 +44,14 @@ class RoomMessageCallback(EventCallback):
                 command = commands.HelpCommand()
 
             try:
-                reply = await command.execute()
+                message = await command.execute()
             except exceptions.CommandExecutionError as e:
                 errstring = "Command execution error: {}".format(e)
                 print("! {}".format(errstring))
-                reply = errstring
+                message = messages.Reply(errstring)
             except Exception as e:
-                reply = "Unexpected exception"
+                message = messages.Reply("Unexpected exception")
                 raise
-            message = messages.Message(reply)
             await self.context.message_sender.send_room(message)
 
 class RoomInviteCallback(EventCallback):

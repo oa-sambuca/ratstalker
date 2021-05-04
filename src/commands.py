@@ -8,6 +8,7 @@ from deps.oaquery import oaquery
 from config import Config
 from src import exceptions
 from src import snapshot
+from src import messages
 
 
 
@@ -18,38 +19,32 @@ class Command:
             raise NotImplementedError
         self.args = args
 
-    async def execute(self) -> str:
+    async def execute(self) -> messages.Reply:
         """Execute command
 
-        returns a string suitable to be replied back
+        returns a reply message
         raises CommandExecutionError
         """
 
 class QueryCommand(Command):
-    """Query all configured OA servers, optionally by keyword"""
-    def __init__(self, snapshot: snapshot.GlobalSnapshot, by_servername: bool = True, args: List[str] = None):
+    """Query server snapshots by servername"""
+    def __init__(self, snapshot: snapshot.GlobalSnapshot, args: List[str] = None):
         super().__init__(args)
         self.snapshot = snapshot
-        self.by_servername = by_servername
 
-    async def execute(self) -> str:
-        snaps = (self.snapshot.filter_by_servername(self.args) if self.by_servername else
-        self.snapshot.filter_by_players(self.args))
+    async def execute(self) -> messages.QueryReply:
+        snaps = self.snapshot.filter_by_servername(self.args)
+        return messages.QueryReply(snaps)
 
-        resp = {}
-        for info in [s.info for s in snaps]:
-            resp.update({
-                    info.name().gethtml() : {
-                        "map"       : info.map(),
-                        "game"      : info.game(),
-                        "nplayers"  : "{}/{}/{}".format(
-                            info.num_humans(),
-                            info.num_clients(),
-                            info.maxclients()),
-                        "players"   : [player.name.gethtml() for player in info.likely_human_players()]
-                        }
-                    })
-        return str(resp) if resp else "No match for: {}".format(', '.join(self.args))
+class StalkCommand(Command):
+    """Query server snapshots by playernames"""
+    def __init__(self, snapshot: snapshot.GlobalSnapshot, args: List[str] = None):
+        super().__init__(args)
+        self.snapshot = snapshot
+
+    async def execute(self) -> messages.StalkReply:
+        snaps = self.snapshot.filter_by_players(self.args)
+        return messages.StalkReply(snaps)
 
 class MonitorCommand(Command):
     """Set or get the monitor option"""
@@ -57,24 +52,24 @@ class MonitorCommand(Command):
         super().__init__(args)
         self.wakeup_event = wakeup_event
 
-    async def execute(self) -> str:
+    async def execute(self) -> messages.MonitorReply:
         try:
             state = self.args[0].lower()
         except IndexError:
             pass
         else:
-            if state == "true":
+            if state == "on":
                 Config.Bot.monitor = True
                 # restart the monitor task
                 await self.wakeup_event.set()
-            elif state == "false":
+            elif state == "off":
                 Config.Bot.monitor = False
                 # stop the monitor task
                 await self.wakeup_event.clear()
         finally:
-            return "Monitor: {}".format(Config.Bot.monitor)
+            return messages.MonitorReply()
 
 class HelpCommand(Command):
     """Show help"""
-    async def execute(self) -> str:
-        return "usage: {} query[ keywords]|stalk players|monitor[ true|false]|help".format(Config.Bot.name)
+    async def execute(self) -> messages.HelpReply:
+        return messages.HelpReply()
