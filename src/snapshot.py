@@ -21,16 +21,16 @@ class GlobalSnapshot:
             servername = info.name().getstr()
             gametype = info.gametype().name
             try:
-                last_threshold = oldsnap.servers_snaps[servername].last_threshold
+                last_state = oldsnap.servers_snaps[servername].state
             except KeyError:
-                last_threshold = self.timestamp
+                last_state = ServerSnapshotState(self.timestamp, self.timestamp)
             # get rid of city asap :)
             if 'city' in servername.lower():
-                snapshot = CityServerSnapshot(info, self.timestamp, last_threshold)
+                snapshot = CityServerSnapshot(info, self.timestamp, last_state)
             elif gametype in ("TOURNAMENT", "MULTITOURNAMENT"):
-                snapshot = DuelServerSnapshot(info, self.timestamp, last_threshold)
+                snapshot = DuelServerSnapshot(info, self.timestamp, last_state)
             else:
-                snapshot = DefaultServerSnapshot(info, self.timestamp, last_threshold)
+                snapshot = DefaultServerSnapshot(info, self.timestamp, last_state)
 
             self.servers_snaps[servername] = snapshot
         return self
@@ -57,15 +57,22 @@ class GlobalSnapshot:
 
 # Server snapshot
 
+class ServerSnapshotState:
+    """State of a snapshot"""
+    def __init__(self, last_threshold: float, last_duration: float):
+        # last time a threshold rule matched
+        self.last_threshold = last_threshold
+        # last time the duration rule matched
+        self.last_duration = last_duration
+
 class ServerSnapshot:
     """Base class for server snapshots"""
-    def __init__(self, info: oaquery.ServerInfo, timestamp: float, last_threshold: float):
+    def __init__(self, info: oaquery.ServerInfo, timestamp: float, last_state: ServerSnapshotState):
         if type(self) is ServerSnapshot:
             raise NotImplementedError
         self.info = info
         self.timestamp = timestamp
-        # last time the threshold was crossed
-        self.last_threshold = last_threshold
+        self.state = last_state
         self.relevance_rules: List[RelevanceRule] = []
 
     def compare(self, prev_snap: ServerSnapshot) -> List[RelevanceRule]:
@@ -74,7 +81,7 @@ class ServerSnapshot:
         Every subclass matches against appropriate relevance rules
         """
 
-    def attach_rules(self, *rules: RelevanceRule) -> SnapshotDiff:
+    def attach_rules(self, *rules: RelevanceRule) -> ServerSnapshot:
         """Add a relevance rule to be later evaluated for this snapshot"""
         for rule in rules:
             self.relevance_rules.append(rule)
@@ -88,29 +95,6 @@ class ServerSnapshot:
                 matched_rules.append(rule)
                 rule._post_match(self)
         return matched_rules
-
-class DummyServerSnapshot(ServerSnapshot):
-    """Dummy snapshot to be used as first server snapshot"""
-    # NOTE: This is useful as fallback snapshot when there is no previous
-    # snapshot to compare against for a paticular server (like when the bot
-    # starts or when a server has just came up), so we use this empty
-    # DummyServerSnapshot with a DummyServerInfo providing some fallback
-    # values.
-    def __init__(self, timestamp: float):
-        super().__init__(DummyServerInfo(), timestamp, timestamp)
-
-class DummyServerInfo(oaquery.ServerInfo):
-    """Dummy infos to be used in a DummyServerSnapshot"""
-    # This class must override all of the attributes/methods that the
-    # SnapshotDiff class operates with. Override the minimum of ServerInfo
-    # class as much as it's necessary to fake a reset state from the
-    # SnapshotDiff point of view (i.e. just override the attributes and methods
-    # used in the SnapshotDiff initializer)
-    def __init__(self):
-        pass
-
-    def num_humans(self):
-        return 0
 
 class DuelServerSnapshot(ServerSnapshot):
     def compare(self, prev_snap: ServerSnapshot) -> List[RelevanceRule]:
@@ -139,6 +123,29 @@ class DefaultServerSnapshot(ServerSnapshot):
                 DurationRule(threshold))
         return self.evaluate_rules(prev_snap)
 
+class DummyServerSnapshot(ServerSnapshot):
+    """Dummy snapshot to be used as first server snapshot"""
+    # NOTE: This is useful as fallback snapshot when there is no previous
+    # snapshot to compare against for a paticular server (like when the bot
+    # starts or when a server has just came up), so we use this empty
+    # DummyServerSnapshot with a DummyServerInfo providing some fallback
+    # values.
+    def __init__(self, timestamp: float):
+        super().__init__(DummyServerInfo(), timestamp, timestamp)
+
+class DummyServerInfo(oaquery.ServerInfo):
+    """Dummy infos to be used in a DummyServerSnapshot"""
+    # This class must override all of the attributes/methods that RelevanceRule
+    # objects operates with. Override the minimum of ServerInfo class as much
+    # as it's necessary to fake a reset state from the RelevanceRule's
+    # evaluate() point of view (i.e. just override the attributes and methods
+    # used by prev)
+    def __init__(self):
+        pass
+
+    def num_humans(self):
+        return 0
+
 
 
 # Relevance rules
@@ -146,14 +153,14 @@ class DefaultServerSnapshot(ServerSnapshot):
 class RelevanceRule:
     """Base class for a relevance rule
 
-    Relevance rules represent different rules to check for diff relevance
+    Relevance rules represent different rules to check for snapshot relevance
     """
     def __init__(self, *args):
         if type(self) is RelevanceRule:
             raise NotImplementedError
 
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
-        """Evaluate the rule on the diff"""
+        """Evaluate the rule on two consecutive snapshots"""
 
     def _post_match(self, snapshot: ServerSnapshot):
         """Actions to take after the rule is matched, e.g. change snapshot state"""
@@ -165,10 +172,11 @@ class OverThresholdRule(RelevanceRule):
         self.threshold = threshold
 
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
-        return (prev.info.num_humans() < self.threshold and curr.info.num_humans() >= self.threshold)
+        return (prev.info.num_humans() < self.threshold and
+                curr.info.num_humans() >= self.threshold)
 
     def _post_match(self, snapshot: ServerSnapshot):
-        snapshot.last_threshold = snapshot.timestamp
+        snapshot.state.last_threshold = snapshot.timestamp
 
 class UnderThresholdRule(RelevanceRule):
     """Number of players just passed under the threshold"""
@@ -176,10 +184,11 @@ class UnderThresholdRule(RelevanceRule):
         self.threshold = threshold
 
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
-        return (prev.info.num_humans() >= self.threshold and curr.info.num_humans() < self.threshold)
+        return (prev.info.num_humans() >= self.threshold and
+                curr.info.num_humans() < self.threshold)
 
     def _post_match(self, snapshot: ServerSnapshot):
-        snapshot.last_threshold = snapshot.timestamp
+        snapshot.state.last_threshold = snapshot.timestamp
 
 class DurationRule(RelevanceRule):
     """Number of players has been over threshold for some time"""
@@ -188,11 +197,9 @@ class DurationRule(RelevanceRule):
         self.duration = Config.Thresholds.duration_time * 60
 
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
-        nplayers_check  = curr.info.num_humans() >= self.threshold
-        duration_check  = curr.timestamp - curr.last_threshold >= self.duration
-        return (duration_check and nplayers_check)
+        return (curr.info.num_humans() >= self.threshold and
+                curr.timestamp - curr.state.last_duration >= self.duration and
+                curr.timestamp > curr.state.last_threshold)
 
     def _post_match(self, snapshot: ServerSnapshot):
-        # TODO: don't modify last_threshold! it will break other rules sooner
-        # or later... use a separate variable for duration asap
-        snapshot.last_threshold = snapshot.timestamp
+        snapshot.state.last_duration = snapshot.timestamp
