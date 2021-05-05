@@ -200,7 +200,7 @@ class DurationRule(RelevanceRule):
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
         return (curr.info.num_humans() >= self.threshold and
                 curr.timestamp - curr.state.last_duration >= self.duration and
-                curr.timestamp > curr.state.last_threshold)
+                curr.timestamp - curr.state.last_threshold >= self.duration)
 
     def _post_match(self, snapshot: ServerSnapshot):
         snapshot.state.last_duration = snapshot.timestamp
