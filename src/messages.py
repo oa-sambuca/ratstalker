@@ -1,4 +1,5 @@
 from typing import List
+import html
 
 import nio
 
@@ -130,7 +131,7 @@ class OverThresholdNotification(Notification):
 
         self.html = self.html_template.format(
                 server = name.gethtml(), nplayers = nplayers, s = s,
-                mapname = mapname, mode = mode,
+                mapname = html.escape(mapname), mode = mode,
                 players = ', '.join([player.name.gethtml() for player in players]))
 
 class UnderThresholdNotification(Notification):
@@ -176,7 +177,8 @@ class DurationNotification(Notification):
 
         self.html = self.html_template.format(
                 players = ', '.join([player.name.gethtml() for player in players]),
-                tobe = tobe, mapname = mapname, mode = mode, server = name.gethtml())
+                tobe = tobe, mapname = html.escape(mapname), mode = mode,
+                server = name.gethtml())
 
 # replies
 
@@ -209,7 +211,7 @@ class QueryReply(Reply):
             server = info.name().strip().gethtml(),
             nplayers = info.num_humans(),
             s = '' if info.num_humans() == 1 else 's',
-            mapname = info.map(),
+            mapname = html.escape(info.map()),
             mode = info.gametype().name,
             players = ', '.join([player.name.gethtml() for player in info.likely_human_players()])
             ) for info in [s.info for s in snaps]])
