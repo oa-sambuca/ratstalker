@@ -5,7 +5,7 @@ import nio
 
 from src import snapshot
 from config import Config
-from deps.oaquery.oaquery import ArenaString, ARENA_HTML_COLORS, ARENA_COLORS, COLOR_RESET
+from deps.oaquery.oaquery import ArenaString, ARENA_COLORS, COLOR_RESET
 
 
 
@@ -55,35 +55,49 @@ class ColorPalette:
         return cls._colorize(string, cls.orange)
 
 class HtmlPalette(ColorPalette):
-    black   = ARENA_HTML_COLORS['0']
-    red     = ARENA_HTML_COLORS['1']
-    green   = ARENA_HTML_COLORS['2']
-    yellow  = ARENA_HTML_COLORS['3']
-    blue    = ARENA_HTML_COLORS['4']
-    cyan    = ARENA_HTML_COLORS['5']
-    magenta = ARENA_HTML_COLORS['6']
-    white   = ARENA_HTML_COLORS['7']
-    orange  = ARENA_HTML_COLORS['8']
+    # universal palette suitable for both light and dark themes
+    colormap = {
+            '0' : '4d4d4d',
+            '1' : 'db0000',
+            '2' : '00cc00',
+            '3' : 'f3de00',
+            '4' : '4c4cff',
+            '5' : '00d4d4',
+            '6' : 'e500e5',
+            '7' : 'cecece',
+            '8' : 'ff5f02'
+            }
+
+    black   = colormap['0']
+    red     = colormap['1']
+    green   = colormap['2']
+    yellow  = colormap['3']
+    blue    = colormap['4']
+    cyan    = colormap['5']
+    magenta = colormap['6']
+    white   = colormap['7']
+    orange  = colormap['8']
 
     @classmethod
     def _colorize(cls, string: str, color: str):
         return "<font color=#" + color + ">" + string + "</font>"
 
 class TermPalette(ColorPalette):
-    black   = ARENA_COLORS['0']
-    red     = ARENA_COLORS['1']
-    green   = ARENA_COLORS['2']
-    yellow  = ARENA_COLORS['3']
-    blue    = ARENA_COLORS['4']
-    cyan    = ARENA_COLORS['5']
-    magenta = ARENA_COLORS['6']
-    white   = ARENA_COLORS['7']
-    orange  = ARENA_COLORS['8']
-    reset   = COLOR_RESET
+    colormap = ARENA_COLORS
+
+    black   = colormap['0']
+    red     = colormap['1']
+    green   = colormap['2']
+    yellow  = colormap['3']
+    blue    = colormap['4']
+    cyan    = colormap['5']
+    magenta = colormap['6']
+    white   = colormap['7']
+    orange  = colormap['8']
 
     @classmethod
     def _colorize(cls, string: str, color: str):
-        return color + string + cls.reset
+        return color + string + COLOR_RESET
 
 
 
@@ -127,9 +141,9 @@ class OverThresholdNotification(Notification):
                 players = ', '.join([player.name.getstr(True) for player in players]))
 
         self.html = self.html_template.format(
-                server = server.gethtml(), nplayers = nplayers, s = s,
-                mapname = html.escape(mapname), mode = mode,
-                players = ', '.join([player.name.gethtml() for player in players]))
+                server = server.gethtml(HtmlPalette.colormap), nplayers = nplayers,
+                s = s, mapname = html.escape(mapname), mode = mode,
+                players = ', '.join([player.name.gethtml(HtmlPalette.colormap) for player in players]))
 
 class UnderThresholdNotification(Notification):
     """Notification for the players under threshold change"""
@@ -149,7 +163,7 @@ class UnderThresholdNotification(Notification):
                 server = server.getstr(True), nplayers = nplayers, s = s)
 
         self.html = self.html_template.format(
-                server = server.gethtml(), nplayers = nplayers, s = s)
+                server = server.gethtml(HtmlPalette.colormap), nplayers = nplayers, s = s)
 
 class DurationNotification(Notification):
     """Notification for the match duration"""
@@ -173,9 +187,9 @@ class DurationNotification(Notification):
                 tobe = tobe, mapname = mapname, mode = mode, server = server.getstr(True))
 
         self.html = self.html_template.format(
-                players = ', '.join([player.name.gethtml() for player in players]),
+                players = ', '.join([player.name.gethtml(HtmlPalette.colormap) for player in players]),
                 tobe = tobe, mapname = html.escape(mapname), mode = mode,
-                server = server.gethtml())
+                server = server.gethtml(HtmlPalette.colormap))
 
 # replies
 
@@ -205,12 +219,12 @@ class QueryReply(Reply):
         self.term = self.text
 
         self.html = '<br>'.join([self.html_template.format(
-            server = info.name().strip().gethtml(),
+            server = info.name().strip().gethtml(HtmlPalette.colormap),
             nplayers = info.num_humans(),
             s = '' if info.num_humans() == 1 else 's',
             mapname = html.escape(info.map()),
             mode = info.gametype().name,
-            players = ', '.join([player.name.gethtml() for player in info.likely_human_players()])
+            players = ', '.join([player.name.gethtml(HtmlPalette.colormap) for player in info.likely_human_players()])
             ) for info in [s.info for s in snaps]])
 
 class StalkReply(QueryReply):
