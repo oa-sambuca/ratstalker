@@ -9,46 +9,67 @@ from deps.oaquery.oaquery import ArenaString, ARENA_HTML_COLORS, ARENA_COLORS, C
 
 
 
-class HtmlPalette:
-    black   = '#'+ARENA_HTML_COLORS['0']
-    red     = '#'+ARENA_HTML_COLORS['1']
-    green   = '#'+ARENA_HTML_COLORS['2']
-    yellow  = '#'+ARENA_HTML_COLORS['3']
-    blue    = '#'+ARENA_HTML_COLORS['4']
-    cyan    = '#'+ARENA_HTML_COLORS['5']
-    magenta = '#'+ARENA_HTML_COLORS['6']
-    white   = '#'+ARENA_HTML_COLORS['7']
-    orange  = '#'+ARENA_HTML_COLORS['8']
+class ColorPalette:
+    """Base class for color palettes"""
+    black   = ""
+    red     = ""
+    green   = ""
+    yellow  = ""
+    blue    = ""
+    cyan    = ""
+    magenta = ""
+    white   = ""
+    orange  = ""
+
+    @classmethod
+    def _colorize(cls, string: str, color: str):
+        """return the input string colored with the given color"""
+        raise NotImplementedError
 
     @classmethod
     def strblack(cls, string: str):
-        return "<font color=" + cls.black + ">" + string + "</font>"
+        return cls._colorize(string, cls.black)
     @classmethod
     def strred(cls, string: str):
-        return "<font color=" + cls.red + ">" + string + "</font>"
+        return cls._colorize(string, cls.red)
     @classmethod
     def strgreen(cls, string: str):
-        return "<font color=" + cls.green + ">" + string + "</font>"
+        return cls._colorize(string, cls.green)
     @classmethod
     def stryellow(cls, string: str):
-        return "<font color=" + cls.yellow + ">" + string + "</font>"
+        return cls._colorize(string, cls.yellow)
     @classmethod
     def strblue(cls, string: str):
-        return "<font color=" + cls.blue + ">" + string + "</font>"
+        return cls._colorize(string, cls.blue)
     @classmethod
     def strcyan(cls, string: str):
-        return "<font color=" + cls.cyan + ">" + string + "</font>"
+        return cls._colorize(string, cls.cyan)
     @classmethod
     def strmagenta(cls, string: str):
-        return "<font color=" + cls.magenta + ">" + string + "</font>"
+        return cls._colorize(string, cls.magenta)
     @classmethod
     def strwhite(cls, string: str):
-        return "<font color=" + cls.white + ">" + string + "</font>"
+        return cls._colorize(string, cls.white)
     @classmethod
     def strorange(cls, string: str):
-        return "<font color=" + cls.orange + ">" + string + "</font>"
+        return cls._colorize(string, cls.orange)
 
-class TermPalette:
+class HtmlPalette(ColorPalette):
+    black   = ARENA_HTML_COLORS['0']
+    red     = ARENA_HTML_COLORS['1']
+    green   = ARENA_HTML_COLORS['2']
+    yellow  = ARENA_HTML_COLORS['3']
+    blue    = ARENA_HTML_COLORS['4']
+    cyan    = ARENA_HTML_COLORS['5']
+    magenta = ARENA_HTML_COLORS['6']
+    white   = ARENA_HTML_COLORS['7']
+    orange  = ARENA_HTML_COLORS['8']
+
+    @classmethod
+    def _colorize(cls, string: str, color: str):
+        return "<font color=#" + color + ">" + string + "</font>"
+
+class TermPalette(ColorPalette):
     black   = ARENA_COLORS['0']
     red     = ARENA_COLORS['1']
     green   = ARENA_COLORS['2']
@@ -61,32 +82,8 @@ class TermPalette:
     reset   = COLOR_RESET
 
     @classmethod
-    def strblack(cls, string: str):
-        return TermPalette.black + string + TermPalette.reset
-    @classmethod
-    def strred(cls, string: str):
-        return TermPalette.red + string + TermPalette.reset
-    @classmethod
-    def strgreen(cls, string: str):
-        return TermPalette.green + string + TermPalette.reset
-    @classmethod
-    def stryellow(cls, string: str):
-        return TermPalette.yellow + string + TermPalette.reset
-    @classmethod
-    def strblue(cls, string: str):
-        return TermPalette.blue + string + TermPalette.reset
-    @classmethod
-    def strcyan(cls, string: str):
-        return TermPalette.cyan + string + TermPalette.reset
-    @classmethod
-    def strmagenta(cls, string: str):
-        return TermPalette.magenta + string + TermPalette.reset
-    @classmethod
-    def strwhite(cls, string: str):
-        return TermPalette.white + string + TermPalette.reset
-    @classmethod
-    def strorange(cls, string: str):
-        return TermPalette.orange + string + TermPalette.reset
+    def _colorize(cls, string: str, color: str):
+        return color + string + cls.reset
 
 
 
@@ -114,23 +111,23 @@ class OverThresholdNotification(Notification):
     def __init__(self, snap: snapshot.ServerSnapshot):
         players = snap.info.likely_human_players()
         nplayers = snap.info.num_humans()
-        name = snap.info.name().strip()
+        server = snap.info.name().strip()
         mapname = snap.info.map()
         mode = snap.info.gametype().name
         s = '' if nplayers == 1 else 's'
 
         self.text = self.text_template.format(
-                server = name.getstr(), nplayers = nplayers, s = s,
+                server = server.getstr(), nplayers = nplayers, s = s,
                 mapname = mapname, mode = mode,
                 players = ', '.join([player.name.getstr() for player in players]))
 
         self.term = self.term_template.format(
-                server = name.getstr(True), nplayers = nplayers, s = s,
+                server = server.getstr(True), nplayers = nplayers, s = s,
                 mapname = mapname, mode = mode,
                 players = ', '.join([player.name.getstr(True) for player in players]))
 
         self.html = self.html_template.format(
-                server = name.gethtml(), nplayers = nplayers, s = s,
+                server = server.gethtml(), nplayers = nplayers, s = s,
                 mapname = html.escape(mapname), mode = mode,
                 players = ', '.join([player.name.gethtml() for player in players]))
 
@@ -141,18 +138,18 @@ class UnderThresholdNotification(Notification):
     html_template = HtmlPalette.strred("●")+" <b>{server}</b>: {nplayers} player{s} now"
 
     def __init__(self, snap: snapshot.ServerSnapshot):
-        name = snap.info.name().strip()
+        server = snap.info.name().strip()
         nplayers = snap.info.num_humans()
         s = '' if nplayers == 1 else 's'
 
         self.text = self.text_template.format(
-                server = name.getstr(), nplayers = nplayers, s = s)
+                server = server.getstr(), nplayers = nplayers, s = s)
 
         self.term = self.term_template.format(
-                server = name.getstr(True), nplayers = nplayers, s = s)
+                server = server.getstr(True), nplayers = nplayers, s = s)
 
         self.html = self.html_template.format(
-                server = name.gethtml(), nplayers = nplayers, s = s)
+                server = server.gethtml(), nplayers = nplayers, s = s)
 
 class DurationNotification(Notification):
     """Notification for the match duration"""
@@ -162,23 +159,23 @@ class DurationNotification(Notification):
 
     def __init__(self, snap: snapshot.ServerSnapshot):
         players = snap.info.likely_human_players()
-        name = snap.info.name().strip()
+        server = snap.info.name().strip()
         tobe = 'is' if snap.info.num_humans() == 1 else 'are'
         mapname = snap.info.map()
         mode = snap.info.gametype().name
 
         self.text = self.text_template.format(
                 players = ', '.join([player.name.getstr() for player in players]),
-                tobe = tobe, mapname = mapname, mode = mode, server = name.getstr())
+                tobe = tobe, mapname = mapname, mode = mode, server = server.getstr())
 
         self.term = self.term_template.format(
                 players = ', '.join([player.name.getstr(True) for player in players]),
-                tobe = tobe, mapname = mapname, mode = mode, server = name.getstr(True))
+                tobe = tobe, mapname = mapname, mode = mode, server = server.getstr(True))
 
         self.html = self.html_template.format(
                 players = ', '.join([player.name.gethtml() for player in players]),
                 tobe = tobe, mapname = html.escape(mapname), mode = mode,
-                server = name.gethtml())
+                server = server.gethtml())
 
 # replies
 
