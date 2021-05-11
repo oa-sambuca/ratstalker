@@ -1,6 +1,6 @@
 """Bot configuration"""
 # Do not edit this template. Copy it to config.py and modify that one
-# instead...  that's what the bot is looking for.
+# instead... that's what the bot is looking for.
 
 class Config:
     class Matrix:
@@ -74,6 +74,6 @@ class Config:
         # sort results
         showsorted  : bool  = True
         # timeout for server queries
-        timeout     : int   = None
+        timeout     : float = 1.0
         # retries for server queries
-        retries     : int   = None
+        retries     : int   = 3
