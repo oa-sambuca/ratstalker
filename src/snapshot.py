@@ -19,10 +19,11 @@ class GlobalSnapshot:
         infos: List[oaquery.ServerInfo] = oaquery.query_servers(
                 Config.OAQuery.hosts, Config.OAQuery.timeout, Config.OAQuery.retries)
         for info in infos:
+            server_id = "{}:{}".format(info.ip, str(info.port))
             servername = info.name().getstr()
             gametype = info.gametype().name
             try:
-                last_state = oldsnap.servers_snaps[servername].state
+                last_state = oldsnap.servers_snaps[server_id].state
             except KeyError:
                 last_state = ServerSnapshotState(self.timestamp, self.timestamp)
             # get rid of city asap :)
@@ -33,7 +34,7 @@ class GlobalSnapshot:
             else:
                 snapshot = DefaultServerSnapshot(info, self.timestamp, last_state)
 
-            self.servers_snaps[servername] = snapshot
+            self.servers_snaps[server_id] = snapshot
         return self
 
     def filter_by_servername(self, patterns: List[str], show_empty = Config.OAQuery.showempty) -> List[ServerSnapshot]:

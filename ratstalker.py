@@ -80,18 +80,18 @@ class RatStalker:
         while await self.context.monitor_wakeup_event.wait():
             try:
                 snap = snapshot.GlobalSnapshot().capture(self.context.last_snapshot)
-                await self._process_snapshot(snap)
+                await self._process_snapshots(snap)
                 self.context.last_snapshot = snap
             except Exception:
                 raise
             await asyncio.sleep(Config.Bot.monitor_time * 60)
 
-    async def _process_snapshot(self, snap: snapshot.GlobalSnapshot):
-        for sname, ssnap in snap.servers_snaps.items():
+    async def _process_snapshots(self, snap: snapshot.GlobalSnapshot):
+        for sid, ssnap in snap.servers_snaps.items():
             try:
-                matched_rules = ssnap.compare(self.context.last_snapshot.servers_snaps[sname])
+                matched_rules = ssnap.compare(self.context.last_snapshot.servers_snaps[sid])
             except KeyError:
-                # No snapshot named sname in last_snapshot (e.g. at start)
+                # No snapshot with server id sid in last_snapshot (e.g. at start)
                 # => compare against a DummyServerSnapshot
                 matched_rules = ssnap.compare(snapshot.DummyServerSnapshot(ssnap.timestamp))
             for rule in matched_rules:
