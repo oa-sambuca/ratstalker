@@ -1,8 +1,10 @@
 from __future__ import annotations
 from typing import Dict, List
 import time
+import html
 
 from config import Config
+from src.messages import HtmlPalette
 from deps.oaquery import oaquery
 
 
@@ -20,21 +22,18 @@ class GlobalSnapshot:
                 Config.OAQuery.hosts, Config.OAQuery.timeout, Config.OAQuery.retries)
         for info in infos:
             server_id = "{}:{}".format(info.ip, str(info.port))
-            servername = info.name().getstr()
-            gametype = info.gametype().name
             try:
                 last_state = oldsnap.servers_snaps[server_id].state
             except KeyError:
                 last_state = ServerSnapshotState(self.timestamp, self.timestamp)
+            snapshot = DefaultServerSnapshot(info, self.timestamp, last_state)
             # get rid of city asap :)
-            if 'city' in servername.lower():
+            if 'city' in snapshot.get_servername_text().lower():
                 snapshot = CityServerSnapshot(info, self.timestamp, last_state)
-            elif gametype in ("TOURNAMENT", "MULTITOURNAMENT"):
+            elif snapshot.get_game_mode() in ("TOURNAMENT", "MULTITOURNAMENT"):
                 snapshot = DuelServerSnapshot(info, self.timestamp, last_state)
-            else:
-                snapshot = DefaultServerSnapshot(info, self.timestamp, last_state)
-
             self.servers_snaps[server_id] = snapshot
+
         return self
 
     def filter_by_servername(self, patterns: List[str], show_empty = Config.OAQuery.showempty) -> List[ServerSnapshot]:
@@ -43,8 +42,8 @@ class GlobalSnapshot:
         Patterns are and-ed
         """
         return [s for s in self.servers_snaps.values() if
-                (all(k in s.info.name().getstr().lower() for k in patterns) and
-                    (show_empty or s.info.num_humans()))]
+                (all(k in s.get_servername_text().lower() for k in patterns) and
+                    (show_empty or s.get_num_players()))]
 
     def filter_by_players(self, patterns: List[str]) -> List[ServerSnapshot]:
         """Return a list of server snapshots with players matching patterns
@@ -52,8 +51,7 @@ class GlobalSnapshot:
         Patterns are or-ed
         """
         return [s for s in self.servers_snaps.values() if
-                any(k in x for x in [n.getstr().lower()
-                    for n in [p.name for p in s.info.likely_human_players()]]
+                any(k in name for name in [p.lower() for p in s.get_players_text()]
                     for k in patterns)]
 
 
@@ -77,6 +75,39 @@ class ServerSnapshot:
         self.timestamp = timestamp
         self.state = last_state
         self.relevance_rules: List[RelevanceRule] = []
+
+    def get_servername_text(self) -> str:
+        return self.info.name().strip().getstr()
+
+    def get_servername_term(self) -> str:
+        return self.info.name().strip().getstr(True)
+
+    def get_servername_html(self) -> str:
+        return self.info.name().strip().gethtml(HtmlPalette.colormap)
+
+    def get_game_mode(self) -> str:
+        return self.info.gametype().name
+
+    def get_map_text(self) -> str:
+        return self.info.map()
+
+    def get_map_term(self) -> str:
+        return self.get_map_text()
+
+    def get_map_html(self) -> str:
+        return html.escape(self.get_map_text())
+
+    def get_num_players(self) -> int:
+        return self.info.num_humans()
+
+    def get_players_text(self) -> List[str]:
+        return [player.name.strip().getstr() for player in self.info.likely_human_players()]
+
+    def get_players_term(self) -> List[str]:
+        return [player.name.strip().getstr(True) for player in self.info.likely_human_players()]
+
+    def get_players_html(self) -> List[str]:
+        return [player.name.strip().gethtml(HtmlPalette.colormap) for player in self.info.likely_human_players()]
 
     def compare(self, prev_snap: ServerSnapshot) -> List[RelevanceRule]:
         """Compare with a previous snapshot
@@ -131,22 +162,15 @@ class DummyServerSnapshot(ServerSnapshot):
     # NOTE: This is useful as fallback snapshot when there is no previous
     # snapshot to compare against for a paticular server (like when the bot
     # starts or when a server has just came up), so we use this empty
-    # DummyServerSnapshot with a DummyServerInfo providing some fallback
-    # values.
-    def __init__(self, timestamp: float):
-        super().__init__(DummyServerInfo(), timestamp, timestamp)
-
-class DummyServerInfo(oaquery.ServerInfo):
-    """Dummy infos to be used in a DummyServerSnapshot"""
+    # DummyServerSnapshot providing some fallback values.
     # This class must override all of the attributes/methods that RelevanceRule
-    # objects operates with. Override the minimum of ServerInfo class as much
-    # as it's necessary to fake a reset state from the RelevanceRule's
-    # evaluate() point of view (i.e. just override the attributes and methods
-    # used by prev)
-    def __init__(self):
-        pass
+    # objects operates with. Override as much as it's necessary to fake a reset
+    # state from the RelevanceRule's evaluate() point of view (i.e. just
+    # override the attributes and methods used by prev)
+    def __init__(self, timestamp: float):
+        super().__init__(None, timestamp, timestamp)
 
-    def num_humans(self):
+    def get_num_players(self) -> int:
         return 0
 
 
@@ -175,8 +199,8 @@ class OverThresholdRule(RelevanceRule):
         self.threshold = threshold
 
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
-        return (prev.info.num_humans() < self.threshold and
-                curr.info.num_humans() >= self.threshold)
+        return (prev.get_num_players() < self.threshold and
+                curr.get_num_players() >= self.threshold)
 
     def _post_match(self, snapshot: ServerSnapshot):
         snapshot.state.last_threshold = snapshot.timestamp
@@ -187,8 +211,8 @@ class UnderThresholdRule(RelevanceRule):
         self.threshold = threshold
 
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
-        return (prev.info.num_humans() >= self.threshold and
-                curr.info.num_humans() < self.threshold)
+        return (prev.get_num_players() >= self.threshold and
+                curr.get_num_players() < self.threshold)
 
     def _post_match(self, snapshot: ServerSnapshot):
         snapshot.state.last_threshold = snapshot.timestamp
@@ -200,7 +224,7 @@ class DurationRule(RelevanceRule):
         self.duration = Config.Thresholds.duration_time * 60
 
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
-        return (curr.info.num_humans() >= self.threshold and
+        return (curr.get_num_players() >= self.threshold and
                 curr.timestamp - curr.state.last_duration >= self.duration and
                 curr.timestamp - curr.state.last_threshold >= self.duration)
 

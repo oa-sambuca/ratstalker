@@ -1,25 +1,17 @@
+from __future__ import annotations
 from typing import List
-import html
 
 import nio
 
 from src import snapshot
 from config import Config
-from deps.oaquery.oaquery import ArenaString, ARENA_COLORS, COLOR_RESET
+from deps.oaquery.oaquery import ARENA_COLORS, COLOR_RESET
 
 
 
 class ColorPalette:
     """Base class for color palettes"""
-    black   = ""
-    red     = ""
-    green   = ""
-    yellow  = ""
-    blue    = ""
-    cyan    = ""
-    magenta = ""
-    white   = ""
-    orange  = ""
+    black = red  = green = yellow = blue = cyan = magenta = white = orange = ""
 
     @classmethod
     def _colorize(cls, string: str, color: str):
@@ -55,7 +47,7 @@ class ColorPalette:
         return cls._colorize(string, cls.orange)
 
 class HtmlPalette(ColorPalette):
-    # universal palette suitable for both light and dark themes
+    # universal palette suitable for both light and dark themes (thx treb)
     colormap = {
             '0' : '4d4d4d',
             '1' : 'db0000',
@@ -123,27 +115,31 @@ class OverThresholdNotification(Notification):
     html_template = HtmlPalette.strgreen("●")+" <b>{server}</b>: {nplayers} player{s} now @ <b>{mapname}</b>/{mode} ({players})"
 
     def __init__(self, snap: snapshot.ServerSnapshot):
-        players = snap.info.likely_human_players()
-        nplayers = snap.info.num_humans()
-        server = snap.info.name().strip()
-        mapname = snap.info.map()
-        mode = snap.info.gametype().name
-        s = '' if nplayers == 1 else 's'
+        s = '' if snap.get_num_players() == 1 else 's'
 
         self.text = self.text_template.format(
-                server = server.getstr(), nplayers = nplayers, s = s,
-                mapname = mapname, mode = mode,
-                players = ', '.join([player.name.getstr() for player in players]))
+                server = snap.get_servername_text(),
+                nplayers = snap.get_num_players(),
+                s = s,
+                mapname = snap.get_map_text(),
+                mode = snap.get_game_mode(),
+                players = ', '.join(snap.get_players_text()))
 
         self.term = self.term_template.format(
-                server = server.getstr(True), nplayers = nplayers, s = s,
-                mapname = mapname, mode = mode,
-                players = ', '.join([player.name.getstr(True) for player in players]))
+                server = snap.get_servername_term(),
+                nplayers = snap.get_num_players(),
+                s = s,
+                mapname = snap.get_map_term(),
+                mode = snap.get_game_mode(),
+                players = ', '.join(snap.get_players_term()))
 
         self.html = self.html_template.format(
-                server = server.gethtml(HtmlPalette.colormap), nplayers = nplayers,
-                s = s, mapname = html.escape(mapname), mode = mode,
-                players = ', '.join([player.name.gethtml(HtmlPalette.colormap) for player in players]))
+                server = snap.get_servername_html(),
+                nplayers = snap.get_num_players(),
+                s = s,
+                mapname = snap.get_map_html(),
+                mode = snap.get_game_mode(),
+                players = ', '.join(snap.get_players_html()))
 
 class UnderThresholdNotification(Notification):
     """Notification for the players under threshold change"""
@@ -152,18 +148,22 @@ class UnderThresholdNotification(Notification):
     html_template = HtmlPalette.strred("●")+" <b>{server}</b>: {nplayers} player{s} now"
 
     def __init__(self, snap: snapshot.ServerSnapshot):
-        server = snap.info.name().strip()
-        nplayers = snap.info.num_humans()
-        s = '' if nplayers == 1 else 's'
+        s = '' if snap.get_num_players() == 1 else 's'
 
         self.text = self.text_template.format(
-                server = server.getstr(), nplayers = nplayers, s = s)
+                server = snap.get_servername_text(),
+                nplayers = snap.get_num_players(),
+                s = s)
 
         self.term = self.term_template.format(
-                server = server.getstr(True), nplayers = nplayers, s = s)
+                server = snap.get_servername_term(),
+                nplayers = snap.get_num_players(),
+                s = s)
 
         self.html = self.html_template.format(
-                server = server.gethtml(HtmlPalette.colormap), nplayers = nplayers, s = s)
+                server = snap.get_servername_html(),
+                nplayers = snap.get_num_players(),
+                s = s)
 
 class DurationNotification(Notification):
     """Notification for the match duration"""
@@ -172,24 +172,28 @@ class DurationNotification(Notification):
     html_template = HtmlPalette.strcyan("●")+" <b>{server}</b>: {players} {tobe} still having a lot of fun @ <b>{mapname}</b>/{mode}"
 
     def __init__(self, snap: snapshot.ServerSnapshot):
-        players = snap.info.likely_human_players()
-        server = snap.info.name().strip()
-        tobe = 'is' if snap.info.num_humans() == 1 else 'are'
-        mapname = snap.info.map()
-        mode = snap.info.gametype().name
+        tobe = 'is' if snap.get_num_players() == 1 else 'are'
 
         self.text = self.text_template.format(
-                players = ', '.join([player.name.getstr() for player in players]),
-                tobe = tobe, mapname = mapname, mode = mode, server = server.getstr())
+                players = ', '.join(snap.get_players_text()),
+                tobe = tobe,
+                mapname = snap.get_map_text(),
+                mode = snap.get_game_mode(),
+                server = snap.get_servername_text())
 
         self.term = self.term_template.format(
-                players = ', '.join([player.name.getstr(True) for player in players]),
-                tobe = tobe, mapname = mapname, mode = mode, server = server.getstr(True))
+                players = ', '.join(snap.get_players_term()),
+                tobe = tobe,
+                mapname = snap.get_map_term(),
+                mode = snap.get_game_mode(),
+                server = snap.get_servername_term())
 
         self.html = self.html_template.format(
-                players = ', '.join([player.name.gethtml(HtmlPalette.colormap) for player in players]),
-                tobe = tobe, mapname = html.escape(mapname), mode = mode,
-                server = server.gethtml(HtmlPalette.colormap))
+                players = ', '.join(snap.get_players_html()),
+                tobe = tobe,
+                mapname = snap.get_map_html(),
+                mode = snap.get_game_mode(),
+                server = snap.get_servername_html())
 
 # replies
 
@@ -208,24 +212,24 @@ class QueryReply(Reply):
             return
 
         self.text = '\n'.join([self.text_template.format(
-            server = info.name().strip().getstr(),
-            nplayers = info.num_humans(),
-            s = '' if info.num_humans() == 1 else 's',
-            mapname = info.map(),
-            mode = info.gametype().name,
-            players = ', '.join([player.name.getstr() for player in info.likely_human_players()])
-            ) for info in [s.info for s in snaps]])
+            server = snap.get_servername_text(),
+            nplayers = snap.get_num_players(),
+            s = '' if snap.get_num_players() == 1 else 's',
+            mapname = snap.get_map_text(),
+            mode = snap.get_game_mode(),
+            players = ', '.join(snap.get_players_text())
+            ) for snap in snaps])
 
         self.term = self.text
 
         self.html = '<br>'.join([self.html_template.format(
-            server = info.name().strip().gethtml(HtmlPalette.colormap),
-            nplayers = info.num_humans(),
-            s = '' if info.num_humans() == 1 else 's',
-            mapname = html.escape(info.map()),
-            mode = info.gametype().name,
-            players = ', '.join([player.name.gethtml(HtmlPalette.colormap) for player in info.likely_human_players()])
-            ) for info in [s.info for s in snaps]])
+            server = snap.get_servername_html(),
+            nplayers = snap.get_num_players(),
+            s = '' if snap.get_num_players() == 1 else 's',
+            mapname = snap.get_map_html(),
+            mode = snap.get_game_mode(),
+            players = ', '.join(snap.get_players_html())
+            ) for snap in snaps])
 
 class StalkReply(QueryReply):
     """Reply for the stalk command"""
@@ -247,11 +251,12 @@ class HelpReply(Reply):
     """Reply for the help command"""
     text_template = "Usage: {botname} query[ keywords]|stalk players|monitor[ on|off]|help"
     term_template = text_template
-    html_template = ("Usage: <b>{botname}</b> " +
-    HtmlPalette.strcyan("query")+"[ keywords]|" +
-    HtmlPalette.strcyan("stalk")+" players|"    +
-    HtmlPalette.strcyan("monitor")+"[ on|off]|" +
-    HtmlPalette.strcyan("help"))
+    html_template = (
+            "Usage: <b>{botname}</b> "                  +
+            HtmlPalette.strcyan("query")+"[ keywords]|" +
+            HtmlPalette.strcyan("stalk")+" players|"    +
+            HtmlPalette.strcyan("monitor")+"[ on|off]|" +
+            HtmlPalette.strcyan("help"))
 
     def __init__(self):
         self.text = self.text_template.format(botname = Config.Bot.name)
