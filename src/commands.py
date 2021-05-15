@@ -38,7 +38,7 @@ class QueryCommand(Command):
     async def execute(self) -> messages.QueryReply:
         patterns = self.args.split()
         snaps = self.snapshot.filter_by_servername(patterns)
-        return messages.QueryReply(snaps)
+        return messages.QueryReply(snaps, bool(patterns))
 
 class HuntCommand(Command):
     """Query server snapshots by playernames

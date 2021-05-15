@@ -248,9 +248,11 @@ class QueryReply(Reply):
     term_template = text_template
     html_template = "<b>{server}</b>: {nplayers} player{s} now @ <b>{mapname}</b>/{mode} ({players})"
 
-    def __init__(self, snaps: List[snapshot.ServerSnapshot]):
+    def __init__(self, snaps: List[snapshot.ServerSnapshot], query_patterns: bool = True):
         if not snaps:
-            self.text = self.term = self.html = "No match for this search"
+            self.text = self.term = self.html = (
+                    "No match for this search" if query_patterns else
+                    "No player currently online")
             return
 
         self.text = '\n'.join([self.text_template.format(
