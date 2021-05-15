@@ -69,7 +69,7 @@ class Config:
                 ("151.236.222.109", 27962),     # /N/try hard UK|CTF
                 ("151.236.222.109", 27965),     # /N/INSTA CTF UK
                 ("151.236.222.109", 27964),     # /N/CTF UK
-                ("151.236.222.109", 27968)      # /N/INSTA DM UK
+                ("151.236.222.109", 27968)      # /N/CA UK|CA
                 ]
         # show server if empty
         showempty   : bool  = False
