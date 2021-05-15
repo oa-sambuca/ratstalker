@@ -5,7 +5,7 @@ import nio
 
 from src import snapshot
 from config import Config
-from deps.oaquery.oaquery import ARENA_COLORS, COLOR_RESET
+from deps.oaquery.oaquery import ARENA_COLORS, COLOR_RESET, ArenaString
 
 
 
@@ -90,6 +90,21 @@ class TermPalette(ColorPalette):
     @classmethod
     def _colorize(cls, string: str, color: str):
         return color + string + COLOR_RESET
+
+
+
+class MessageString:
+    def __init__(self, string: ArenaString):
+        self.string = string
+
+    def get_text(self) -> str:
+        return self.string.getstr()
+
+    def get_term(self) -> str:
+        return self.string.getstr(True)
+
+    def get_html(self) -> str:
+        return self.string.gethtml(HtmlPalette.colormap)
 
 
 
@@ -195,6 +210,33 @@ class DurationNotification(Notification):
                 mode = snap.get_game_mode(),
                 server = snap.get_servername_html())
 
+class PlayerNotification(Notification):
+    def __init__(self, players: List[MessageString], snap: snapshot.ServerSnapshot):
+
+        self.text = self.text_template.format(
+                players = ', '.join([player.get_text() for player in players]),
+                server = snap.get_servername_text())
+
+        self.term = self.term_template.format(
+                players = ', '.join([player.get_term() for player in players]),
+                server = snap.get_servername_term())
+
+        self.html = self.html_template.format(
+                players = ', '.join([player.get_html() for player in players]),
+                server = snap.get_servername_html())
+
+class PlayerEnterNotification(PlayerNotification):
+    """Notification of some players entering the server"""
+    text_template = "[->] {players} entered {server}"
+    term_template = TermPalette.strgreen("→")+" {players} entered {server}"
+    html_template = HtmlPalette.strgreen("→")+" {players} entered <b>{server}</b>"
+
+class PlayerLeaveNotification(PlayerNotification):
+    """Notification for some players leaving the server"""
+    text_template = "[<-] {players} left {server}"
+    term_template = TermPalette.strred("←")+" {players} left {server}"
+    html_template = HtmlPalette.strred("←")+" {players} left <b>{server}</b>"
+
 # replies
 
 class Reply(Message):
@@ -231,8 +273,22 @@ class QueryReply(Reply):
             players = ', '.join(snap.get_players_html())
             ) for snap in snaps])
 
-class StalkReply(QueryReply):
+class HuntReply(QueryReply):
+    """Reply for the hunt command"""
+
+class StalkReply(Reply):
     """Reply for the stalk command"""
+    text_template = "Currently in the stalk list: {players}"
+    term_template = html_template = text_template
+
+    def __init__(self):
+        if not Config.Players.stalk_list:
+            self.text = self.term = self.html = "No player in the stalk list"
+            return
+
+        players = ', '.join(Config.Players.stalk_list)
+        self.text = self.text_template.format(players = players)
+        self.term = self.html = self.text
 
 class MonitorReply(Reply):
     """Reply for the monitor command"""
@@ -249,13 +305,20 @@ class MonitorReply(Reply):
 
 class HelpReply(Reply):
     """Reply for the help command"""
-    text_template = "Usage: {botname} query[ keywords]|stalk players|monitor[ on|off]|help"
+    text_template = (
+            "Usage: {botname} "                     +
+            "query[ keyword ...]|"                  +
+            "hunt player[, ...]|"                   +
+            "stalk list|[add|del player[, ...]]|"   +
+            "monitor[ on|off]|"                     +
+            "help")
     term_template = text_template
     html_template = (
-            "Usage: <b>{botname}</b> "                  +
-            HtmlPalette.strcyan("query")+"[ keywords]|" +
-            HtmlPalette.strcyan("stalk")+" players|"    +
-            HtmlPalette.strcyan("monitor")+"[ on|off]|" +
+            "Usage: <b>{botname}</b> "                                      +
+            HtmlPalette.strcyan("query")+"[ keyword ...]|"                  +
+            HtmlPalette.strcyan("hunt")+" player[, ...]|"                   +
+            HtmlPalette.strcyan("stalk")+" list|[add|del player[, ...]]|"   +
+            HtmlPalette.strcyan("monitor")+"[ on|off]|"                     +
             HtmlPalette.strcyan("help"))
 
     def __init__(self):

@@ -43,6 +43,12 @@ class Config:
         # minutes after which a duration notification can be sent
         duration_time   : int   = 30
 
+    class Players:
+        """Configurations related to players"""
+        # players to stalk for entering/leaving servers
+        stalk_list      : set   = set([
+            ])
+
     class OAQuery:
         """Configurations for oaquery library"""
         # hosts monitored by this bot

@@ -25,17 +25,19 @@ class RoomMessageCallback(EventCallback):
         if (event.body.startswith(Config.Bot.name)):
             print("+ Got command from {}: {}".format(event.sender, event.body))
             try:
-                cmd = event.body.split()[1:]
+                tkns = event.body.split()
+                trg, cmd = tkns[0], tkns[1:]
                 action = cmd[0].lower()
-                # not applying lower() in case of case-sensitive args...
-                args = cmd[1:]
+                args = event.body[len(trg):].strip()[len(action):].lstrip()
             except IndexError:
                 action = "help"
 
             if action == "query":
                 command = commands.QueryCommand(self.context.last_snapshot, args)
+            elif action == "hunt":
+                command = commands.HuntCommand(self.context.last_snapshot, args)
             elif action == "stalk":
-                command = commands.StalkCommand(self.context.last_snapshot, args)
+                command = commands.StalkCommand(args)
             elif action == "monitor":
                 command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
             elif action == "help":

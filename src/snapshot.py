@@ -4,7 +4,7 @@ import time
 import html
 
 from config import Config
-from src.messages import HtmlPalette
+from src import messages
 from deps.oaquery import oaquery
 
 
@@ -76,14 +76,17 @@ class ServerSnapshot:
         self.state = last_state
         self.relevance_rules: List[RelevanceRule] = []
 
+    def get_servername(self) -> messages.MessageString:
+        return messages.MessageString(self.info.name().strip())
+
     def get_servername_text(self) -> str:
-        return self.info.name().strip().getstr()
+        return self.get_servername().get_text()
 
     def get_servername_term(self) -> str:
-        return self.info.name().strip().getstr(True)
+        return self.get_servername().get_term()
 
     def get_servername_html(self) -> str:
-        return self.info.name().strip().gethtml(HtmlPalette.colormap)
+        return self.get_servername().get_html()
 
     def get_game_mode(self) -> str:
         return self.info.gametype().name
@@ -100,14 +103,17 @@ class ServerSnapshot:
     def get_num_players(self) -> int:
         return self.info.num_humans()
 
+    def get_players(self) -> List[messages.MessageString]:
+        return [messages.MessageString(player.name.strip()) for player in self.info.likely_human_players()]
+
     def get_players_text(self) -> List[str]:
-        return [player.name.strip().getstr() for player in self.info.likely_human_players()]
+        return [player.get_text() for player in self.get_players()]
 
     def get_players_term(self) -> List[str]:
-        return [player.name.strip().getstr(True) for player in self.info.likely_human_players()]
+        return [player.get_term() for player in self.get_players()]
 
     def get_players_html(self) -> List[str]:
-        return [player.name.strip().gethtml(HtmlPalette.colormap) for player in self.info.likely_human_players()]
+        return [player.get_html() for player in self.get_players()]
 
     def compare(self, prev_snap: ServerSnapshot) -> List[RelevanceRule]:
         """Compare with a previous snapshot
@@ -136,7 +142,9 @@ class DuelServerSnapshot(ServerSnapshot):
         self.attach_rules(
                 UnderThresholdRule(threshold),
                 OverThresholdRule(threshold),
-                DurationRule(threshold))
+                DurationRule(threshold),
+                PlayerEnterRule(),
+                PlayerLeaveRule())
         return self.evaluate_rules(prev_snap)
 
 class CityServerSnapshot(ServerSnapshot):
@@ -154,7 +162,9 @@ class DefaultServerSnapshot(ServerSnapshot):
         self.attach_rules(
                 UnderThresholdRule(threshold),
                 OverThresholdRule(threshold),
-                DurationRule(threshold))
+                DurationRule(threshold),
+                PlayerEnterRule(),
+                PlayerLeaveRule())
         return self.evaluate_rules(prev_snap)
 
 class DummyServerSnapshot(ServerSnapshot):
@@ -172,6 +182,9 @@ class DummyServerSnapshot(ServerSnapshot):
 
     def get_num_players(self) -> int:
         return 0
+
+    def get_players(self):
+        return []
 
 
 
@@ -230,3 +243,29 @@ class DurationRule(RelevanceRule):
 
     def _post_match(self, snapshot: ServerSnapshot):
         snapshot.state.last_duration = snapshot.timestamp
+
+class PlayerEnterRule(RelevanceRule):
+    """Some players entered the server"""
+    def __init__(self):
+        self.players: List[messages.MessageString] = []
+
+    def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
+        self.players = [p for p in curr.get_players() if (
+            p.get_text() in Config.Players.stalk_list and p.get_text() not in prev.get_players_text())]
+        return bool(self.players)
+
+    def _post_match(self, snapshot: ServerSnapshot):
+        pass
+
+class PlayerLeaveRule(RelevanceRule):
+    """Some players left the server"""
+    def __init__(self):
+        self.players: List[messages.MessageString] = []
+
+    def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
+        self.players = [p for p in prev.get_players() if (
+            p.get_text() in Config.Players.stalk_list and p.get_text() not in curr.get_players_text())]
+        return bool(self.players)
+
+    def _post_match(self, snapshot: ServerSnapshot):
+        pass

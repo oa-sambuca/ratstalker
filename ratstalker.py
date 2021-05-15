@@ -102,6 +102,10 @@ class RatStalker:
                     message = messages.UnderThresholdNotification(ssnap)
                 elif ruletype is snapshot.DurationRule:
                     message = messages.DurationNotification(ssnap)
+                elif ruletype is snapshot.PlayerEnterRule:
+                    message = messages.PlayerEnterNotification(rule.players, ssnap)
+                elif ruletype is snapshot.PlayerLeaveRule:
+                    message = messages.PlayerLeaveNotification(rule.players, ssnap)
                 else:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
