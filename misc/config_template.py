@@ -46,8 +46,10 @@ class Config:
     class Players:
         """Configurations related to players"""
         # players to stalk for entering/leaving servers
-        stalk_list      : set   = set([
-            ])
+        # loaded at run-time from persistent storage
+        stalk_list      : set   = set()
+        # file used to save/load the stalk list, saved in the Bot.store_dir
+        stalk_list_file : str   = "stalk_list"
 
     class OAQuery:
         """Configurations for oaquery library"""

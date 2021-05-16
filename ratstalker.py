@@ -5,6 +5,7 @@
 import asyncio
 import os
 import sqlite3
+import json
 
 import nio
 
@@ -49,6 +50,18 @@ class RatStalker:
         self.context.client.add_event_callback(
                 callbacks.RoomInviteCallback(self.context),
                 nio.InviteEvent)
+    
+    def _load_stalk_list(self):
+        stalk_list_file = os.path.join(Config.Bot.store_dir, Config.Players.stalk_list_file)
+        try:
+            with open (stalk_list_file, "r") as f:
+                Config.Players.stalk_list = set(json.load(f))
+        except FileNotFoundError:
+            print("+ Creating stalk list file: {}".format(stalk_list_file))
+            with open(stalk_list_file, 'w') as f:
+                json.dump(list(), f)
+        except json.JSONDecodeError:
+            print("! Malformed stalk list file")
 
     async def start_stalking(self):
         """Start stalking!"""
@@ -75,6 +88,7 @@ class RatStalker:
             raise
 
     async def _monitor_servers(self):
+        self._load_stalk_list()
         if Config.Bot.monitor:
             self.context.monitor_wakeup_event.set()
         while await self.context.monitor_wakeup_event.wait():
@@ -136,6 +150,7 @@ class Main:
     async def main(cls):
         print(banner)
         if not os.path.isdir(Config.Bot.store_dir):
+            print("+ Creating the store dir: {}".format(Config.Bot.store_dir))
             os.mkdir(Config.Bot.store_dir)
         device_id = cls._retrieve_device_id()
         client_config=nio.ClientConfig(

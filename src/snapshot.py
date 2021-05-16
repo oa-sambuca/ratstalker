@@ -76,8 +76,8 @@ class ServerSnapshot:
         self.state = last_state
         self.relevance_rules: List[RelevanceRule] = []
 
-    def get_servername(self) -> messages.MessageString:
-        return messages.MessageString(self.info.name().strip())
+    def get_servername(self) -> messages.MessageArenaString:
+        return messages.MessageArenaString(self.info.name().strip())
 
     def get_servername_text(self) -> str:
         return self.get_servername().get_text()
@@ -103,8 +103,8 @@ class ServerSnapshot:
     def get_num_players(self) -> int:
         return self.info.num_humans()
 
-    def get_players(self) -> List[messages.MessageString]:
-        return [messages.MessageString(player.name.strip()) for player in self.info.likely_human_players()]
+    def get_players(self) -> List[messages.MessageArenaString]:
+        return [messages.MessageArenaString(player.name.strip()) for player in self.info.likely_human_players()]
 
     def get_players_text(self) -> List[str]:
         return [player.get_text() for player in self.get_players()]
@@ -247,7 +247,7 @@ class DurationRule(RelevanceRule):
 class PlayerEnterRule(RelevanceRule):
     """Some players entered the server"""
     def __init__(self):
-        self.players: List[messages.MessageString] = []
+        self.players: List[messages.MessageArenaString] = []
 
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
         self.players = [p for p in curr.get_players() if (
@@ -260,7 +260,7 @@ class PlayerEnterRule(RelevanceRule):
 class PlayerLeaveRule(RelevanceRule):
     """Some players left the server"""
     def __init__(self):
-        self.players: List[messages.MessageString] = []
+        self.players: List[messages.MessageArenaString] = []
 
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
         self.players = [p for p in prev.get_players() if (

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Iterable
 
 import nio
 
@@ -93,7 +93,7 @@ class TermPalette(ColorPalette):
 
 
 
-class MessageString:
+class MessageArenaString:
     def __init__(self, string: ArenaString):
         self.string = string
 
@@ -118,6 +118,11 @@ class Message:
         self.term = term if term else text
         self.html = html if html else text
 
+    @staticmethod
+    def get_comma_separated_string(strings: Iterable[str]) -> str:
+        """Return an escaped comma separated string from the input list"""
+        return ', '.join([s.replace(',', '\,') for s in strings])
+
 # notifications
 
 class Notification(Message):
@@ -138,7 +143,7 @@ class OverThresholdNotification(Notification):
                 s = s,
                 mapname = snap.get_map_text(),
                 mode = snap.get_game_mode(),
-                players = ', '.join(snap.get_players_text()))
+                players = self.get_comma_separated_string(snap.get_players_text()))
 
         self.term = self.term_template.format(
                 server = snap.get_servername_term(),
@@ -146,7 +151,7 @@ class OverThresholdNotification(Notification):
                 s = s,
                 mapname = snap.get_map_term(),
                 mode = snap.get_game_mode(),
-                players = ', '.join(snap.get_players_term()))
+                players = self.get_comma_separated_string(snap.get_players_term()))
 
         self.html = self.html_template.format(
                 server = snap.get_servername_html(),
@@ -154,7 +159,7 @@ class OverThresholdNotification(Notification):
                 s = s,
                 mapname = snap.get_map_html(),
                 mode = snap.get_game_mode(),
-                players = ', '.join(snap.get_players_html()))
+                players = self.get_comma_separated_string(snap.get_players_html()))
 
 class UnderThresholdNotification(Notification):
     """Notification for the players under threshold change"""
@@ -190,39 +195,39 @@ class DurationNotification(Notification):
         tobe = 'is' if snap.get_num_players() == 1 else 'are'
 
         self.text = self.text_template.format(
-                players = ', '.join(snap.get_players_text()),
+                players = self.get_comma_separated_string(snap.get_players_text()),
                 tobe = tobe,
                 mapname = snap.get_map_text(),
                 mode = snap.get_game_mode(),
                 server = snap.get_servername_text())
 
         self.term = self.term_template.format(
-                players = ', '.join(snap.get_players_term()),
+                players = self.get_comma_separated_string(snap.get_players_term()),
                 tobe = tobe,
                 mapname = snap.get_map_term(),
                 mode = snap.get_game_mode(),
                 server = snap.get_servername_term())
 
         self.html = self.html_template.format(
-                players = ', '.join(snap.get_players_html()),
+                players = self.get_comma_separated_string(snap.get_players_html()),
                 tobe = tobe,
                 mapname = snap.get_map_html(),
                 mode = snap.get_game_mode(),
                 server = snap.get_servername_html())
 
 class PlayerNotification(Notification):
-    def __init__(self, players: List[MessageString], snap: snapshot.ServerSnapshot):
+    def __init__(self, players: List[MessageArenaString], snap: snapshot.ServerSnapshot):
 
         self.text = self.text_template.format(
-                players = ', '.join([player.get_text() for player in players]),
+                players = self.get_comma_separated_string(([player.get_text() for player in players])),
                 server = snap.get_servername_text())
 
         self.term = self.term_template.format(
-                players = ', '.join([player.get_term() for player in players]),
+                players = self.get_comma_separated_string(([player.get_term() for player in players])),
                 server = snap.get_servername_term())
 
         self.html = self.html_template.format(
-                players = ', '.join([player.get_html() for player in players]),
+                players = self.get_comma_separated_string(([player.get_html() for player in players])),
                 server = snap.get_servername_html())
 
 class PlayerEnterNotification(PlayerNotification):
@@ -248,10 +253,10 @@ class QueryReply(Reply):
     term_template = text_template
     html_template = "<b>{server}</b>: {nplayers} player{s} now @ <b>{mapname}</b>/{mode} ({players})"
 
-    def __init__(self, snaps: List[snapshot.ServerSnapshot], query_patterns: bool = True):
+    def __init__(self, snaps: List[snapshot.ServerSnapshot], by_keywords: bool = True):
         if not snaps:
             self.text = self.term = self.html = (
-                    "No match for this search" if query_patterns else
+                    "No match for this search" if by_keywords else
                     "No player currently online")
             return
 
@@ -261,7 +266,7 @@ class QueryReply(Reply):
             s = '' if snap.get_num_players() == 1 else 's',
             mapname = snap.get_map_text(),
             mode = snap.get_game_mode(),
-            players = ', '.join(snap.get_players_text())
+            players = self.get_comma_separated_string(snap.get_players_text())
             ) for snap in snaps])
 
         self.term = self.text
@@ -272,7 +277,7 @@ class QueryReply(Reply):
             s = '' if snap.get_num_players() == 1 else 's',
             mapname = snap.get_map_html(),
             mode = snap.get_game_mode(),
-            players = ', '.join(snap.get_players_html())
+            players = self.get_comma_separated_string(snap.get_players_html())
             ) for snap in snaps])
 
 class HuntReply(QueryReply):
@@ -283,13 +288,14 @@ class StalkReply(Reply):
     text_template = "Currently in the stalk list: {players}"
     term_template = html_template = text_template
 
-    def __init__(self):
-        if not Config.Players.stalk_list:
-            self.text = self.term = self.html = "No player in the stalk list"
-            return
-
-        players = ', '.join(Config.Players.stalk_list)
-        self.text = self.text_template.format(players = players)
+    def __init__(self, no_echo: bool = False):
+        if no_echo:
+            self.text = "Done"
+        elif not Config.Players.stalk_list:
+            self.text = "No player in the stalk list"
+        else:
+            self.text = self.text_template.format(
+                players = self.get_comma_separated_string(Config.Players.stalk_list))
         self.term = self.html = self.text
 
 class MonitorReply(Reply):
@@ -308,19 +314,19 @@ class MonitorReply(Reply):
 class HelpReply(Reply):
     """Reply for the help command"""
     text_template = (
-            "Usage: {botname} "                     +
-            "query[ keyword ...]|"                  +
-            "hunt player[, ...]|"                   +
-            "stalk list|[add|del player[, ...]]|"   +
-            "monitor[ on|off]|"                     +
+            "Usage: {botname} "                                         +
+            "query[ keyword ...]|"                                      +
+            "hunt player[, ...]|"                                       +
+            "stalk list|clear|save|restore|[add|del player[, ...]]|"    +
+            "monitor[ on|off]|"                                         +
             "help")
     term_template = text_template
     html_template = (
-            "Usage: <b>{botname}</b> "                                      +
-            HtmlPalette.strcyan("query")+"[ keyword ...]|"                  +
-            HtmlPalette.strcyan("hunt")+" player[, ...]|"                   +
-            HtmlPalette.strcyan("stalk")+" list|[add|del player[, ...]]|"   +
-            HtmlPalette.strcyan("monitor")+"[ on|off]|"                     +
+            "Usage: <b>{botname}</b> "                                                          +
+            HtmlPalette.strcyan("query")+"[ keyword ...]|"                                      +
+            HtmlPalette.strcyan("hunt")+" player[, ...]|"                                       +
+            HtmlPalette.strcyan("stalk")+" list|clear|save|restore|[add|del player[, ...]]|"    +
+            HtmlPalette.strcyan("monitor")+"[ on|off]|"                                         +
             HtmlPalette.strcyan("help"))
 
     def __init__(self):

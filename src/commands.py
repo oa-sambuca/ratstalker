@@ -2,6 +2,9 @@
 
 from typing import List
 import asyncio
+import re
+import json
+import os
 
 from deps.oaquery import oaquery
 
@@ -57,7 +60,7 @@ class HuntCommand(Command):
 class StalkCommand(Command):
     """List/add/delete players from the stalk list
 
-    syntax: stalk list | add player[, ...] | del player[, ...]
+    syntax: stalk list | clear | save | restore | add player[, ...] | del player[, ...]
     """
     def __init__(self, args: str = ""):
         super().__init__(args)
@@ -68,12 +71,21 @@ class StalkCommand(Command):
         except IndexError:
             action = "list"
 
-        players = [p.strip() for p in self.args[len(action):].split(',')]
+        # use re.split() to split commas only when they don't follow a backslash
+        players = [p.strip().replace('\,',',') for p in re.split(r'(?<!\\),', self.args[len(action):])]
         if action == "add":
             Config.Players.stalk_list.update(players)
         elif action == "del":
             Config.Players.stalk_list.difference_update(players)
-        return messages.StalkReply()
+        elif action == "clear":
+            Config.Players.stalk_list.clear()
+        elif action == "save":
+            with open (os.path.join(Config.Bot.store_dir, Config.Players.stalk_list_file), "w") as f:
+                json.dump(list(Config.Players.stalk_list), f)
+        elif action == "restore":
+            with open (os.path.join(Config.Bot.store_dir, Config.Players.stalk_list_file), "r") as f:
+                Config.Players.stalk_list = set(json.load(f))
+        return messages.StalkReply(action == "save")
 
 class MonitorCommand(Command):
     """Set or get the monitor option
