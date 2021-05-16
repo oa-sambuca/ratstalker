@@ -219,15 +219,15 @@ class PlayerNotification(Notification):
     def __init__(self, players: List[MessageArenaString], snap: snapshot.ServerSnapshot):
 
         self.text = self.text_template.format(
-                players = self.get_comma_separated_string(([player.get_text() for player in players])),
+                players = self.get_comma_separated_string([player.get_text() for player in players]),
                 server = snap.get_servername_text())
 
         self.term = self.term_template.format(
-                players = self.get_comma_separated_string(([player.get_term() for player in players])),
+                players = self.get_comma_separated_string([player.get_term() for player in players]),
                 server = snap.get_servername_term())
 
         self.html = self.html_template.format(
-                players = self.get_comma_separated_string(([player.get_html() for player in players])),
+                players = self.get_comma_separated_string([player.get_html() for player in players]),
                 server = snap.get_servername_html())
 
 class PlayerEnterNotification(PlayerNotification):
