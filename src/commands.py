@@ -5,6 +5,7 @@ import asyncio
 import re
 import json
 import os
+import aiofiles
 
 from deps.oaquery import oaquery
 
@@ -80,11 +81,11 @@ class StalkCommand(Command):
         elif action == "clear":
             Config.Players.stalk_list.clear()
         elif action == "save":
-            with open (os.path.join(Config.Bot.store_dir, Config.Players.stalk_list_file), "w") as f:
-                json.dump(list(Config.Players.stalk_list), f)
+            async with aiofiles.open(os.path.join(Config.Bot.store_dir, Config.Players.stalk_list_file), "w") as f:
+                await f.write(json.dumps(list(Config.Players.stalk_list)))
         elif action == "restore":
-            with open (os.path.join(Config.Bot.store_dir, Config.Players.stalk_list_file), "r") as f:
-                Config.Players.stalk_list = set(json.load(f))
+            async with aiofiles.open(os.path.join(Config.Bot.store_dir, Config.Players.stalk_list_file), "r") as f:
+                Config.Players.stalk_list = set(json.loads(await f.read()))
         return messages.StalkReply(action == "save")
 
 class MonitorCommand(Command):
