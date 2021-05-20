@@ -11,8 +11,9 @@ class Config:
         user    : str   = ""
         # password
         passwd  : str   = ""
-        # room to join
-        room    : str   = ""
+        # list of rooms to join
+        rooms   : list  = [
+                ]
 
     class Bot:
         """Configurations for the bot"""

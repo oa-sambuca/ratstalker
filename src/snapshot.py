@@ -142,9 +142,9 @@ class DuelServerSnapshot(ServerSnapshot):
         self.attach_rules(
                 UnderThresholdRule(threshold),
                 OverThresholdRule(threshold),
-                DurationRule(threshold),
-                PlayerLeaveRule(),
-                PlayerEnterRule())
+                DurationRule(threshold))
+                #PlayerLeaveRule(),
+                #PlayerEnterRule())
         return self.evaluate_rules(prev_snap)
 
 class CityServerSnapshot(ServerSnapshot):
@@ -162,9 +162,9 @@ class DefaultServerSnapshot(ServerSnapshot):
         self.attach_rules(
                 UnderThresholdRule(threshold),
                 OverThresholdRule(threshold),
-                DurationRule(threshold),
-                PlayerLeaveRule(),
-                PlayerEnterRule())
+                DurationRule(threshold))
+                #PlayerLeaveRule(),
+                #PlayerEnterRule())
         return self.evaluate_rules(prev_snap)
 
 class DummyServerSnapshot(ServerSnapshot):

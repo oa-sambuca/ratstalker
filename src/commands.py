@@ -5,8 +5,8 @@ import asyncio
 import re
 import json
 import os
-import aiofiles
 
+import aiofiles
 from deps.oaquery import oaquery
 
 from config import Config

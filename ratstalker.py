@@ -6,9 +6,9 @@ import asyncio
 import os
 import sqlite3
 import json
-import aiofiles
 
 import nio
+import aiofiles
 
 from config import Config
 from src import callbacks
@@ -68,16 +68,15 @@ class RatStalker:
         """Start stalking!"""
         await self.context.client.login(Config.Matrix.passwd)
         await self.context.client.set_displayname(Config.Bot.name)
-        joinresp = await self.context.client.join(Config.Matrix.room)
-        if type(joinresp) is nio.responses.JoinError:
-            print("- Could not join room {}: {}".format(
-                        Config.Matrix.room,
-                        joinresp.message)
-                    )
-        else:
-            print("+ Joined room: {}".format(Config.Matrix.room))
-        # dummy sync to consume events arrived while offline
-        await self.context.client.sync(full_state=True)
+        for room in Config.Matrix.rooms:
+            joinresp = await self.context.client.join(room)
+            if type(joinresp) is nio.responses.JoinError:
+                print("- Could not join room {}: {}".format(
+                    room, joinresp.message))
+            else:
+                print("+ Joined room: {}".format(room))
+            # dummy sync to consume events arrived while offline
+            await self.context.client.sync(full_state=True)
         self._init_callbacks()
         try:
             await asyncio.gather(
@@ -125,7 +124,7 @@ class RatStalker:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
                 print(message.term)
-                await self.context.message_sender.send_room(message)
+                await self.context.message_sender.send_rooms(message)
 
 
 

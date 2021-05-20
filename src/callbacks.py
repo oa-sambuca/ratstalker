@@ -37,9 +37,11 @@ class RoomMessageCallback(EventCallback):
             elif action == "hunt":
                 command = commands.HuntCommand(self.context.last_snapshot, args)
             elif action == "stalk":
-                command = commands.StalkCommand(args)
+                #command = commands.StalkCommand(args)
+                command = commands.HelpCommand()
             elif action == "monitor":
-                command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
+                #command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
+                command = commands.HelpCommand()
             elif action == "help":
                 command = commands.HelpCommand()
             else:
@@ -54,14 +56,14 @@ class RoomMessageCallback(EventCallback):
             except Exception as e:
                 message = messages.Reply("Unexpected exception")
                 raise
-            await self.context.message_sender.send_room(message)
+            await self.context.message_sender.send_rooms(message, False, [room.room_id])
 
 class RoomInviteCallback(EventCallback):
     """Callback for the InviteEvent"""
     # Automatically accept invites to rooms
-    # note: only accept invites from the configured room id to prevent abuses
+    # note: only accept invites from the configured room ids to prevent abuses
     async def __call__(self, room: nio.MatrixRoom, event: nio.InviteEvent):
-        if room.room_id == Config.Matrix.room:
+        if room.room_id in Config.Matrix.rooms:
             print("+ Accepting invite for room {}".format(room.room_id))
             self.context.client.join(room.room_id)
         else:

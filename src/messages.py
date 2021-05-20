@@ -317,16 +317,16 @@ class HelpReply(Reply):
             "Usage: {botname} "                                         +
             "query[ keyword ...]|"                                      +
             "hunt player[, ...]|"                                       +
-            "stalk list|clear|save|restore|[add|del player[, ...]]|"    +
-            "monitor[ on|off]|"                                         +
+            #"stalk list|clear|save|restore|[add|del player[, ...]]|"    +
+            #"monitor[ on|off]|"                                         +
             "help")
     term_template = text_template
     html_template = (
             "Usage: <b>{botname}</b> "                                                          +
             HtmlPalette.strcyan("query")+"[ keyword ...]|"                                      +
             HtmlPalette.strcyan("hunt")+" player[, ...]|"                                       +
-            HtmlPalette.strcyan("stalk")+" list|clear|save|restore|[add|del player[, ...]]|"    +
-            HtmlPalette.strcyan("monitor")+"[ on|off]|"                                         +
+            #HtmlPalette.strcyan("stalk")+" list|clear|save|restore|[add|del player[, ...]]|"    +
+            #HtmlPalette.strcyan("monitor")+"[ on|off]|"                                         +
             HtmlPalette.strcyan("help"))
 
     def __init__(self):
@@ -340,14 +340,15 @@ class MessageSender:
     def __init__(self, client: nio.AsyncClient):
         self.client = client
 
-    async def send_room(self, message: Message, notice: bool = True):
-        await self.client.room_send(
-                Config.Matrix.room,
-                "m.room.message",
-                {
-                    "msgtype"           : "m.notice" if notice else "m.text",
-                    "body"              : message.text,
-                    "formatted_body"    : message.html,
-                    "format"            : "org.matrix.custom.html"
-                    }
-                )
+    async def send_rooms(self, message: Message, notice: bool = True, rooms: List[str] = Config.Matrix.rooms):
+        for room in rooms:
+            await self.client.room_send(
+                    room,
+                    "m.room.message",
+                    {
+                        "msgtype"           : "m.notice" if notice else "m.text",
+                        "body"              : message.text,
+                        "formatted_body"    : message.html,
+                        "format"            : "org.matrix.custom.html"
+                        }
+                    )
