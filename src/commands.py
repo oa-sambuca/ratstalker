@@ -108,6 +108,21 @@ class MonitorCommand(Command):
             self.wakeup_event.clear()
         return messages.MonitorReply()
 
+class NotifyCommand(Command):
+    """Send a message to all rooms
+
+    [admin]
+    syntax: notify "message"
+    """
+    def __init__(self, message_sender: messages.MessageSender, args: str):
+        super().__init__(args)
+        self.message_sender = message_sender
+
+    async def execute(self) -> messages.NotifyReply:
+        message = messages.Message(self.args.strip('\'"'))
+        await self.message_sender.send_rooms(message, False)
+        return messages.NotifyReply()
+
 class HelpCommand(Command):
     """Show help"""
     async def execute(self) -> messages.HelpReply:

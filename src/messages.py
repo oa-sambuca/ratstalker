@@ -311,6 +311,10 @@ class MonitorReply(Reply):
         self.term = self.text
         self.html = self.html_template.format(is_enabled = is_enabled)
 
+class NotifyReply(Reply):
+    def __init__(self):
+        self.text = self.term = self.html = "Done"
+
 class HelpReply(Reply):
     """Reply for the help command"""
     text_template = (

@@ -30,6 +30,8 @@ class Config:
         store_dir       : str   = "nio_store/"
         # name of the store inside the store_dir
         store_name      : str   = "{}.db".format(name)
+        # user allowed to send privileged commands
+        admin           : str   = ""
 
     class Thresholds:
         """Number of players on a server that are considered meaningful"""

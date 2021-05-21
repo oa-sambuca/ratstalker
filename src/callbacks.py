@@ -31,20 +31,20 @@ class RoomMessageCallback(EventCallback):
             except IndexError:
                 action = "help"
 
+            command = commands.HelpCommand()
+
             if action == "query":
                 command = commands.QueryCommand(self.context.last_snapshot, args)
             elif action == "hunt":
                 command = commands.HuntCommand(self.context.last_snapshot, args)
             elif action == "stalk":
                 #command = commands.StalkCommand(args)
-                command = commands.HelpCommand()
+                pass
             elif action == "monitor":
                 #command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
-                command = commands.HelpCommand()
-            elif action == "help":
-                command = commands.HelpCommand()
-            else:
-                command = commands.HelpCommand()
+                pass
+            elif action == "notify" and event.sender == Config.Bot.admin:
+                command = commands.NotifyCommand(self.context.message_sender, args)
 
             try:
                 message = await command.execute()
