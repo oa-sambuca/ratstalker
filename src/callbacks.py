@@ -21,36 +21,55 @@ class EventCallback:
 
 class RoomMessageCallback(EventCallback):
     """Callback for the RoomMessageText event"""
+    requests_count = {}
+
     async def __call__(self, room: nio.MatrixRoom, event: nio.RoomMessageText):
         if room.user_name(event.sender) != Config.Bot.name:
-            cmd = event.body.split()[0].lower()
-            args = event.body[len(cmd):].strip()
-
-            command = commands.HelpCommand()
-
-            if cmd == "query":
-                command = commands.QueryCommand(self.context.last_snapshot, args)
-            elif cmd == "hunt":
-                command = commands.HuntCommand(self.context.last_snapshot, args)
-            elif cmd == "stalk":
-                #command = commands.StalkCommand(args)
-                pass
-            elif cmd == "monitor":
-                #command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
-                pass
-            elif cmd == "notify" and event.sender == Config.Bot.admin:
-                command = commands.NotifyCommand(self.context.message_sender, args)
-
             try:
-                message = await command.execute()
-            except exceptions.CommandExecutionError as e:
-                errstring = "Command execution error: {}".format(e)
-                print("! {}".format(errstring))
-                message = messages.Reply(errstring)
-            except Exception as e:
-                message = messages.Reply("Unexpected exception")
-                raise
+                self.requests_count[event.sender] += 1
+            except KeyError:
+                self.requests_count[event.sender] = 1
+
+            if self.requests_count[event.sender] <= Config.Bot.requests_limit:
+                cmd = event.body.split()[0].lower()
+                args = event.body[len(cmd):].strip()
+
+                command = commands.HelpCommand()
+
+                if cmd == "query":
+                    command = commands.QueryCommand(self.context.last_snapshot, args)
+                elif cmd == "hunt":
+                    command = commands.HuntCommand(self.context.last_snapshot, args)
+                elif cmd == "stalk":
+                    #command = commands.StalkCommand(args)
+                    pass
+                elif cmd == "monitor":
+                    #command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
+                    pass
+                elif cmd == "notify" and event.sender == Config.Bot.admin:
+                    command = commands.NotifyCommand(self.context.message_sender, args)
+
+                try:
+                    message = await command.execute()
+                except exceptions.CommandExecutionError as e:
+                    errstring = "Command execution error: {}".format(e)
+                    print("! {}".format(errstring))
+                    message = messages.Reply(errstring)
+                except Exception as e:
+                    message = messages.Reply("Unexpected exception")
+                    raise
+            elif self.requests_count[event.sender] == Config.Bot.requests_limit + 1:
+                message = messages.Reply(
+                        "Too many requests for this time slot! "
+                        "next ones will be silently discarded...")
+            else:
+                # just discard
+                return
             await self.context.message_sender.send_rooms(message, False, [room.room_id])
+
+    @classmethod
+    def reset_requests_count(cls):
+        cls.requests_count.clear()
 
 class RoomInviteCallback(EventCallback):
     """Callback for the InviteEvent"""

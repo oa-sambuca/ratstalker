@@ -98,6 +98,7 @@ class RatStalker:
                 self.context.last_snapshot = snap
             except Exception:
                 raise
+            callbacks.RoomMessageCallback.reset_requests_count()
             await asyncio.sleep(Config.Bot.monitor_time * 60)
 
     async def _process_snapshots(self, snap: snapshot.GlobalSnapshot):

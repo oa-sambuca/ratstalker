@@ -32,6 +32,8 @@ class Config:
         store_name      : str   = "{}.db".format(name)
         # user allowed to send privileged commands
         admin           : str   = ""
+        # maximum number of user requests in a monitor_time interval
+        requests_limit  : int   = 15
 
     class Thresholds:
         """Number of players on a server that are considered meaningful"""
