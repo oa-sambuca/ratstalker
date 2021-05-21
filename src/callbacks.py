@@ -22,28 +22,23 @@ class EventCallback:
 class RoomMessageCallback(EventCallback):
     """Callback for the RoomMessageText event"""
     async def __call__(self, room: nio.MatrixRoom, event: nio.RoomMessageText):
-        if (event.body.startswith(Config.Bot.name)):
-            try:
-                tkns = event.body.split()
-                trg, cmd = tkns[0], tkns[1:]
-                action = cmd[0].lower()
-                args = event.body[len(trg):].strip()[len(action):].lstrip()
-            except IndexError:
-                action = "help"
+        if room.user_name(event.sender) != Config.Bot.name:
+            cmd = event.body.split()[0].lower()
+            args = event.body[len(cmd):].strip()
 
             command = commands.HelpCommand()
 
-            if action == "query":
+            if cmd == "query":
                 command = commands.QueryCommand(self.context.last_snapshot, args)
-            elif action == "hunt":
+            elif cmd == "hunt":
                 command = commands.HuntCommand(self.context.last_snapshot, args)
-            elif action == "stalk":
+            elif cmd == "stalk":
                 #command = commands.StalkCommand(args)
                 pass
-            elif action == "monitor":
+            elif cmd == "monitor":
                 #command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
                 pass
-            elif action == "notify" and event.sender == Config.Bot.admin:
+            elif cmd == "notify" and event.sender == Config.Bot.admin:
                 command = commands.NotifyCommand(self.context.message_sender, args)
 
             try:

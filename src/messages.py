@@ -318,19 +318,19 @@ class NotifyReply(Reply):
 class HelpReply(Reply):
     """Reply for the help command"""
     text_template = (
-            "Usage: {botname} "                                         +
-            "query[ keyword ...]|"                                      +
-            "hunt player[, ...]|"                                       +
-            #"stalk list|clear|save|restore|[add|del player[, ...]]|"    +
-            #"monitor[ on|off]|"                                         +
+            "Usage: "                                                   +
+            "query[ keyword ...] | "                                    +
+            "hunt player[, ...] | "                                     +
+            #"stalk list|clear|save|restore|[add|del player[, ...]] | "    +
+            #"monitor[ on|off] | "                                         +
             "help")
     term_template = text_template
     html_template = (
-            "Usage: <b>{botname}</b> "                                                          +
-            HtmlPalette.strcyan("query")+"[ keyword ...]|"                                      +
-            HtmlPalette.strcyan("hunt")+" player[, ...]|"                                       +
-            #HtmlPalette.strcyan("stalk")+" list|clear|save|restore|[add|del player[, ...]]|"    +
-            #HtmlPalette.strcyan("monitor")+"[ on|off]|"                                         +
+            "Usage: "                                                                           +
+            HtmlPalette.strcyan("query")+"[ keyword ...] | "                                    +
+            HtmlPalette.strcyan("hunt")+" player[, ...] | "                                     +
+            #HtmlPalette.strcyan("stalk")+" list|clear|save|restore|[add|del player[, ...]] | "    +
+            #HtmlPalette.strcyan("monitor")+"[ on|off] | "                                         +
             HtmlPalette.strcyan("help"))
 
     def __init__(self):
