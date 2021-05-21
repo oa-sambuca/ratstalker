@@ -119,7 +119,7 @@ class NotifyCommand(Command):
         self.message_sender = message_sender
 
     async def execute(self) -> messages.NotifyReply:
-        message = messages.Message(self.args.strip('\'"'))
+        message = messages.NotifyMessage(self.args.strip('\'"'))
         await self.message_sender.send_rooms(message, False)
         return messages.NotifyReply()
 
