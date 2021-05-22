@@ -32,7 +32,7 @@ class RoomMessageCallback(EventCallback):
 
             if self.requests_count[event.sender] <= Config.Bot.requests_limit:
                 cmd = event.body.split()[0].lower()
-                args = event.body[len(cmd):].strip()
+                args = event.body.lstrip()[len(cmd):].strip()
 
                 command = commands.HelpCommand()
 
@@ -47,11 +47,11 @@ class RoomMessageCallback(EventCallback):
                     #command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
                     pass
                 elif cmd == "notify" and room.room_id == Config.Bot.admin_room:
-                    command = commands.NotifyCommand(self.context.message_sender, args)
+                    command = commands.NotifyCommand(args)
 
                 try:
                     message = await command.execute()
-                except exceptions.CommandExecutionError as e:
+                except exceptions.CommandError as e:
                     errstring = "Command execution error: {}".format(e)
                     print("! {}".format(errstring))
                     message = messages.Reply(errstring)
@@ -65,7 +65,7 @@ class RoomMessageCallback(EventCallback):
             else:
                 # just discard
                 return
-            await self.context.message_sender.send_rooms(message, False, [room.room_id])
+            await messages.MessageSender.send_rooms(message, False, [room.room_id])
 
     @classmethod
     def reset_requests_count(cls):

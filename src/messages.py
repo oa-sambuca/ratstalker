@@ -2,10 +2,11 @@ from __future__ import annotations
 from typing import List, Iterable
 
 import nio
-
-from src import snapshot
-from config import Config
 from deps.oaquery.oaquery import ARENA_COLORS, COLOR_RESET, ArenaString
+
+from config import Config
+from src import snapshot
+from src import exceptions
 
 
 
@@ -312,8 +313,8 @@ class MonitorReply(Reply):
         self.html = self.html_template.format(is_enabled = is_enabled)
 
 class NotifyReply(Reply):
-    def __init__(self):
-        self.text = self.term = self.html = "Done"
+    def __init__(self, success: bool):
+        self.text = self.term = self.html = "Done" if success else "No notification to send..."
 
 class HelpReply(Reply):
     """Reply for the help command"""
@@ -354,18 +355,29 @@ class NotifyMessage(Notification):
 # message sender
 
 class MessageSender:
-    def __init__(self, client: nio.AsyncClient):
-        self.client = client
+    client: nio.AsyncClient = None
 
-    async def send_rooms(self, message: Message, notice: bool = True, rooms: List[str] = Config.Matrix.rooms):
-        for room in rooms:
-            await self.client.room_send(
-                    room,
-                    "m.room.message",
-                    {
-                        "msgtype"           : "m.notice" if notice else "m.text",
-                        "body"              : message.text,
-                        "formatted_body"    : message.html,
-                        "format"            : "org.matrix.custom.html"
-                        }
-                    )
+    @classmethod
+    async def send_rooms(cls, message: Message, notice: bool = True, rooms: List[str] = Config.Matrix.rooms):
+        """Send a message to (some) joined rooms
+
+        message : the message to send
+        notice  : whether the message must be sent as notice or regular text
+        rooms   : list of rooms to send the message to
+
+        raises exceptions.MessageError if the client attribute was not initialized
+        """
+        try:
+            for room in rooms:
+                await cls.client.room_send(
+                        room,
+                        "m.room.message",
+                        {
+                            "msgtype"           : "m.notice" if notice else "m.text",
+                            "body"              : message.text,
+                            "formatted_body"    : message.html,
+                            "format"            : "org.matrix.custom.html"
+                            }
+                        )
+        except AttributeError:
+            raise exceptions.MessageError("Unable to send message: client attribute is not initialized")

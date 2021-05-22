@@ -2,9 +2,9 @@
 
 RatStalkerError
 |
-'---InvalidCommandError
+'---CommandError
 |
-'---CommandExecutionError
+'---MessageError
 |
 '---MatrixError
 """
@@ -16,19 +16,14 @@ class RatStalkerError(Exception):
     def __init__(self, message="RatStalker Error"):
         super().__init__(message)
 
-class InvalidCommandError(RatStalkerError):
-    """Exception for invalid command"""
-    def __init__(self, message="Invalid Command"):
-        super().__init__(message)
-
-class CommandExecutionError(RatStalkerError):
+class CommandError(RatStalkerError):
     """Exception for command execution"""
     def __init__(self, message="Execution Error"):
         super().__init__(message)
 
-class CommandExecutionError(RatStalkerError):
-    """Exception for command execution"""
-    def __init__(self, message="Execution Error"):
+class MessageError(RatStalkerError):
+    """Exception for messages"""
+    def __init__(self, message="Message Error"):
         super().__init__(message)
 
 class MatrixError(RatStalkerError):

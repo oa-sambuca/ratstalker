@@ -114,16 +114,17 @@ class NotifyCommand(Command):
     [admin]
     syntax: notify "message"
     """
-    def __init__(self, message_sender: messages.MessageSender, args: str):
+    def __init__(self, args: str):
         super().__init__(args)
-        self.message_sender = message_sender
 
     async def execute(self) -> messages.NotifyReply:
         message = messages.NotifyMessage(self.args.strip('\'"'))
-        await self.message_sender.send_rooms(
-                message, False,
-                [r for r in Config.Matrix.rooms if r != Config.Bot.admin_room])
-        return messages.NotifyReply()
+        print(self.args)
+        if self.args:
+            await messages.MessageSender.send_rooms(
+                    message, False,
+                    [r for r in Config.Matrix.rooms if r != Config.Bot.admin_room])
+        return messages.NotifyReply(bool(self.args))
 
 class HelpCommand(Command):
     """Show help"""

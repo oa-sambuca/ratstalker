@@ -34,7 +34,6 @@ class BotContext:
         self.client = client
         self.last_snapshot = last_snapshot
         self.monitor_wakeup_event = monitor_wakeup_event
-        self.message_sender = messages.MessageSender(client)
 
 class RatStalker:
     """RatStalker bot class"""
@@ -43,6 +42,7 @@ class RatStalker:
                 client,
                 snapshot.GlobalSnapshot(),
                 asyncio.Event())
+        messages.MessageSender.client = client
 
     def _init_callbacks(self):
         self.context.client.add_event_callback(
@@ -125,7 +125,7 @@ class RatStalker:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
                 print(message.term)
-                await self.context.message_sender.send_rooms(message)
+                await messages.MessageSender.send_rooms(message)
 
 
 
