@@ -345,7 +345,7 @@ class NotifyMessage(Notification):
     """Message for the notify command"""
     text_template = "[i] {message}"
     term_template = text_template
-    html_template = "ℹ {message}"
+    html_template = HtmlPalette.strblue("<b>ℹ</b>")+" {message}"
 
     def __init__(self, message: str):
         self.text = self.text_template.format(message = message)
