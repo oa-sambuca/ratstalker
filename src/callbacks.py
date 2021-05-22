@@ -46,7 +46,7 @@ class RoomMessageCallback(EventCallback):
                 elif cmd == "monitor":
                     #command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
                     pass
-                elif cmd == "notify" and event.sender == Config.Bot.admin:
+                elif cmd == "notify" and room.room_id == Config.Bot.admin_room:
                     command = commands.NotifyCommand(self.context.message_sender, args)
 
                 try:

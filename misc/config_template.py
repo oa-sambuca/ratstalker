@@ -30,8 +30,8 @@ class Config:
         store_dir       : str   = "nio_store/"
         # name of the store inside the store_dir
         store_name      : str   = "{}.db".format(name)
-        # user allowed to send privileged commands
-        admin           : str   = ""
+        # room from which privileged commands are allowed
+        admin_room      : str   = ""
         # maximum number of user requests in a monitor_time interval
         requests_limit  : int   = 15
 

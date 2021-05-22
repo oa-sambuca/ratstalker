@@ -120,7 +120,9 @@ class NotifyCommand(Command):
 
     async def execute(self) -> messages.NotifyReply:
         message = messages.NotifyMessage(self.args.strip('\'"'))
-        await self.message_sender.send_rooms(message, False)
+        await self.message_sender.send_rooms(
+                message, False,
+                [r for r in Config.Matrix.rooms if r != Config.Bot.admin_room])
         return messages.NotifyReply()
 
 class HelpCommand(Command):
