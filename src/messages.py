@@ -371,6 +371,18 @@ class HelpReply(Reply):
         self.term = self.text
         self.html = self.html_template.format(botname = Config.Bot.name)
 
+class HelpAdminReply(HelpReply):
+    """Reply for the help command when issued by admins"""
+    text_template = (
+            HelpReply.text_template+" | "   +
+            "notify 'message' | "           +
+            "rooms create userid[ ...] | leave [userid | roomid][ ...] | list[ userid] | anomalies")
+    term_template = text_template
+    html_template = (
+            HelpReply.html_template+" | "                       +
+            HtmlPalette.strmagenta("notify")+" 'message' | "    +
+            HtmlPalette.strmagenta("rooms")+" create userid[ ...] | leave [userid | roomid][ ...] | list[ userid] | anomalies")
+
 # generic messages
 
 class NotifyMessage(Notification):

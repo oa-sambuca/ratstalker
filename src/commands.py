@@ -196,5 +196,8 @@ class RoomsCommand(Command):
 
 class HelpCommand(Command):
     """Show help"""
+    def __init__(self, is_admin: bool):
+        self.is_admin = is_admin
+
     async def execute(self) -> messages.HelpReply:
-        return messages.HelpReply()
+        return messages.HelpReply() if not self.is_admin else messages.HelpAdminReply()

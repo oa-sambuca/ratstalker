@@ -34,7 +34,7 @@ class RoomMessageCallback(EventCallback):
                 cmd = event.body.split()[0].lower()
                 args = event.body.lstrip()[len(cmd):].strip()
 
-                command = commands.HelpCommand()
+                command = commands.HelpCommand(room.room_id == Config.Bot.admin_room)
 
                 if cmd == "query":
                     command = commands.QueryCommand(self.context.last_snapshot, args)
