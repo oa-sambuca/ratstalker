@@ -390,18 +390,21 @@ class MessageSender:
     client: nio.AsyncClient = None
 
     @classmethod
-    async def send_rooms(cls, message: Message, rooms: List[str], notice: bool = True):
+    async def send_rooms(cls, message: Message, rooms: List[str], notice: bool = True) -> bool:
         """Send a message to (some) joined rooms
 
         message : the message to send
         notice  : whether the message must be sent as notice or regular text
         rooms   : list of rooms to send the message to
 
+        returns a bool representing success/failure in sending all the messages
+
         raises exceptions.MessageError if the client attribute was not initialized
         """
+        res = []
         try:
             for room in rooms:
-                await cls.client.room_send(
+                res.append(await cls.client.room_send(
                         room,
                         "m.room.message",
                         {
@@ -410,6 +413,8 @@ class MessageSender:
                             "formatted_body"    : message.html,
                             "format"            : "org.matrix.custom.html"
                             }
-                        )
+                        ))
         except AttributeError:
             raise exceptions.MessageError("Unable to send message: client attribute is not initialized")
+        
+        return all([type(r) is nio.RoomSendResponse for r in res])

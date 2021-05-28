@@ -121,12 +121,13 @@ class NotifyCommand(Command):
 
     async def execute(self) -> messages.CommandFeedbackReply:
         message = messages.NotifyMessage(self.args.strip('\'"'))
+        success = False
         if self.args:
-            await messages.MessageSender.send_rooms(
+            success = await messages.MessageSender.send_rooms(
                     message,
                     [r for r in Config.Matrix.rooms if r != Config.Bot.admin_room],
                     False)
-        return messages.CommandFeedbackReply(bool(self.args))
+        return messages.CommandFeedbackReply(success)
 
 class RoomsCommand(Command):
     """Manage bot rooms
