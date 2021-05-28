@@ -65,12 +65,14 @@ class RoomMessageCallback(EventCallback):
                 except Exception as e:
                     message = messages.Reply("Unexpected exception")
                     raise
+                finally:
+                    await self.context.client.room_typing(room.room_id, False)
+
             elif self.requests_count[room.room_id] == Config.Bot.requests_limit + 1:
                 message = messages.RequestsExceededReply()
             else:
                 # just discard
                 return
-            await self.context.client.room_typing(room.room_id, False)
             await messages.MessageSender.send_rooms(message, [room.room_id], False)
 
     @classmethod
