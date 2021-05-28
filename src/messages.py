@@ -257,11 +257,18 @@ class CommandFeedbackReply(Reply):
     text_template_ko = "Some errors occurred during the execution of the command"
     term_template_ko = TermPalette.strred(text_template_ko)
     html_template_ko = HtmlPalette.strred(text_template_ko)
+
     def __init__(self, success = bool):
         (self.text, self.term, self.html) = (
                 self.text_template_ok, self.term_template_ok, self.html_template_ok) if success else (
                 self.term_template_ko, self.term_template_ko, self.html_template_ko)
 
+class RequestsExceededReply(Reply):
+    text_template = "Too many requests for this time slot! Next ones will be silently discarded..."
+    term_template = html_template = text_template
+
+    def __init__(self):
+        self.text = self.term = self.html = self.text_template
 
 class QueryReply(Reply):
     """Reply for the query command"""
@@ -367,9 +374,9 @@ class HelpReply(Reply):
             HtmlPalette.strcyan("help"))
 
     def __init__(self):
-        self.text = self.text_template.format(botname = Config.Bot.name)
+        self.text = self.text_template
         self.term = self.text
-        self.html = self.html_template.format(botname = Config.Bot.name)
+        self.html = self.html_template
 
 class HelpAdminReply(HelpReply):
     """Reply for the help command when issued by admins"""

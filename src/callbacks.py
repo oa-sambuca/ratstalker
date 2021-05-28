@@ -25,12 +25,15 @@ class RoomMessageCallback(EventCallback):
 
     async def __call__(self, room: nio.MatrixRoom, event: nio.RoomMessageText):
         if room.user_name(event.sender) != Config.Bot.name:
-            try:
-                self.requests_count[event.sender] += 1
-            except KeyError:
-                self.requests_count[event.sender] = 1
+            if room.room_id != Config.Bot.admin_room:
+                try:
+                    self.requests_count[room.room_id] += 1
+                except KeyError:
+                    self.requests_count[room.room_id] = 1
+            else:
+                self.requests_count[room.room_id] = 1
 
-            if self.requests_count[event.sender] <= Config.Bot.requests_limit:
+            if self.requests_count[room.room_id] <= Config.Bot.requests_limit:
                 cmd = event.body.split()[0].lower()
                 args = event.body.lstrip()[len(cmd):].strip()
 
@@ -61,10 +64,8 @@ class RoomMessageCallback(EventCallback):
                 except Exception as e:
                     message = messages.Reply("Unexpected exception")
                     raise
-            elif self.requests_count[event.sender] == Config.Bot.requests_limit + 1:
-                message = messages.Reply(
-                        "Too many requests for this time slot! "
-                        "next ones will be silently discarded...")
+            elif self.requests_count[room.room_id] == Config.Bot.requests_limit + 1:
+                message = messages.RequestsExceededReply()
             else:
                 # just discard
                 return
