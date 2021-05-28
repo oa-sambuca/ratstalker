@@ -55,6 +55,7 @@ class RoomMessageCallback(EventCallback):
                 elif cmd == "rooms" and room.room_id == Config.Bot.admin_room:
                     command = commands.RoomsCommand(self.context.client, args)
 
+                await self.context.client.room_typing(room.room_id, True)
                 try:
                     message = await command.execute()
                 except exceptions.CommandError as e:
@@ -69,6 +70,7 @@ class RoomMessageCallback(EventCallback):
             else:
                 # just discard
                 return
+            await self.context.client.room_typing(room.room_id, False)
             await messages.MessageSender.send_rooms(message, [room.room_id], False)
 
     @classmethod
