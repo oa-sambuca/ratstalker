@@ -7,6 +7,7 @@ from deps.oaquery.oaquery import ARENA_COLORS, COLOR_RESET, ArenaString
 from config import Config
 from src import snapshot
 from src import exceptions
+from src import matrix
 
 
 
@@ -248,6 +249,20 @@ class PlayerLeaveNotification(PlayerNotification):
 class Reply(Message):
     """Base class for replies to bot commands"""
 
+class CommandFeedbackReply(Reply):
+    """Generic feedback to commands"""
+    text_template_ok = "Done"
+    term_template_ok = TermPalette.strgreen(text_template_ok)
+    html_template_ok = HtmlPalette.strgreen(text_template_ok)
+    text_template_ko = "Some errors occurred during the execution of the command"
+    term_template_ko = TermPalette.strred(text_template_ko)
+    html_template_ko = HtmlPalette.strred(text_template_ko)
+    def __init__(self, success = bool):
+        (self.text, self.term, self.html) = (
+                self.text_template_ok, self.term_template_ok, self.html_template_ok) if success else (
+                self.term_template_ko, self.term_template_ko, self.html_template_ko)
+
+
 class QueryReply(Reply):
     """Reply for the query command"""
     text_template = "{server}: {nplayers} player{s} now @ {mapname}/{mode} ({players})"
@@ -312,9 +327,26 @@ class MonitorReply(Reply):
         self.term = self.text
         self.html = self.html_template.format(is_enabled = is_enabled)
 
-class NotifyReply(Reply):
-    def __init__(self, success: bool):
-        self.text = self.term = self.html = "Done" if success else "No notification to send..."
+class RoomsReply(Reply):
+    """Reply for room commands returning a list of rooms"""
+    text_template = "{room}: {members}"
+    term_template = text_template
+    html_template = "<b>{room}</b>: {members}"
+
+    def __init__(self, rooms: List[matrix.Room], rooms_only: bool = False):
+        if rooms_only and rooms:
+            self.text = self.term = self.html = ' '.join([room.name for room in rooms])
+        elif rooms:
+            self.text = self.term = '\n'.join([self.text_template.format(
+                room = room.name, 
+                members = ', '.join(["{} ({})".format(m.user_id, m.display_name) for m in room.members]))
+                for room in rooms])
+            self.html = '<br>'.join([self.html_template.format(
+                room = room.name, 
+                members = ', '.join(["{} ({})".format(m.user_id, m.display_name) for m in room.members]))
+                for room in rooms])
+        else:
+            self.text = self.term = self.html = "No result"
 
 class HelpReply(Reply):
     """Reply for the help command"""
@@ -358,7 +390,7 @@ class MessageSender:
     client: nio.AsyncClient = None
 
     @classmethod
-    async def send_rooms(cls, message: Message, notice: bool = True, rooms: List[str] = Config.Matrix.rooms):
+    async def send_rooms(cls, message: Message, rooms: List[str], notice: bool = True):
         """Send a message to (some) joined rooms
 
         message : the message to send

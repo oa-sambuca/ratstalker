@@ -46,8 +46,11 @@ class RoomMessageCallback(EventCallback):
                 elif cmd == "monitor":
                     #command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)
                     pass
+                # [admin]
                 elif cmd == "notify" and room.room_id == Config.Bot.admin_room:
                     command = commands.NotifyCommand(args)
+                elif cmd == "rooms" and room.room_id == Config.Bot.admin_room:
+                    command = commands.RoomsCommand(self.context.client, args)
 
                 try:
                     message = await command.execute()
@@ -65,7 +68,7 @@ class RoomMessageCallback(EventCallback):
             else:
                 # just discard
                 return
-            await messages.MessageSender.send_rooms(message, False, [room.room_id])
+            await messages.MessageSender.send_rooms(message, [room.room_id], False)
 
     @classmethod
     def reset_requests_count(cls):
@@ -74,10 +77,10 @@ class RoomMessageCallback(EventCallback):
 class RoomInviteCallback(EventCallback):
     """Callback for the InviteEvent"""
     # Automatically accept invites to rooms
-    # note: only accept invites from the configured room ids to prevent abuses
     async def __call__(self, room: nio.MatrixRoom, event: nio.InviteEvent):
-        if room.room_id in Config.Matrix.rooms:
-            print("+ Accepting invite for room {}".format(room.room_id))
-            self.context.client.join(room.room_id)
+        print("+ Accepting invite for room {}".format(room.room_id))
+        res = await self.context.client.join(room.room_id)
+        if type(res) is nio.JoinResponse:
+            Config.Matrix.rooms.append(room.room_id)
         else:
-            print("! Unexpected invite for room: {}".format(room.room_id))
+            print("- Unable to join room {} ({})".format(room.room_id, res.message))

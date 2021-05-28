@@ -11,9 +11,8 @@ class Config:
         user    : str   = ""
         # password
         passwd  : str   = ""
-        # list of rooms to join
-        rooms   : list  = [
-                ]
+        # joined rooms (loaded at run-time)
+        rooms   : list  = []
 
     class Bot:
         """Configurations for the bot"""
@@ -32,6 +31,8 @@ class Config:
         store_name      : str   = "{}.db".format(name)
         # room from which privileged commands are allowed
         admin_room      : str   = ""
+        # whether to operate with bot-owned rooms (as opposed to user-owned rooms)
+        bot_owned_rooms : bool  = True
         # maximum number of user requests in a monitor_time interval
         requests_limit  : int   = 15
 

@@ -58,3 +58,23 @@ Run with:
 source venv/bin/activate
 ./ratstalker.py
 ```
+
+The bot will discard all the events arrived while it was offline, to prevent
+the processing of old user queries which are probably no longer relevant.
+
+### Rooms ownership models
+
+The bot is intended to be used in a 1-to-1 room, one per user, thus everyone
+is free to interact with it without affecting others. Hence the bot can operate
+following one of two room ownership models:
+
+- using **user-owned** rooms: better when automation is required
+    - users create rooms and invite the bot
+    - the bot automatically joins the room
+- using **bot-owned** rooms: better when greater control over allowed users is required
+    - the bot creates the rooms and invites users (upon admin request)
+
+In both modes, an admin room created by an admin is strongly suggested, if not
+mandatory, and the bot will always try to join one. After the admin invites the
+bot, it will join this room, from which privileged commands are available in
+addition to the regular ones (e.g. managing rooms).

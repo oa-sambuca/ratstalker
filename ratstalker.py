@@ -48,9 +48,10 @@ class RatStalker:
         self.context.client.add_event_callback(
                 callbacks.RoomMessageCallback(self.context),
                 nio.RoomMessageText)
-        self.context.client.add_event_callback(
-                callbacks.RoomInviteCallback(self.context),
-                nio.InviteEvent)
+        if not Config.Bot.bot_owned_rooms:
+            self.context.client.add_event_callback(
+                    callbacks.RoomInviteCallback(self.context),
+                    nio.InviteEvent)
     
     async def _load_stalk_list(self):
         stalk_list_file = os.path.join(Config.Bot.store_dir, Config.Players.stalk_list_file)
@@ -68,15 +69,18 @@ class RatStalker:
         """Start stalking!"""
         await self.context.client.login(Config.Matrix.passwd)
         await self.context.client.set_displayname(Config.Bot.name)
-        for room in Config.Matrix.rooms:
-            joinresp = await self.context.client.join(room)
-            if type(joinresp) is nio.responses.JoinError:
-                print("- Could not join room {}: {}".format(
-                    room, joinresp.message))
+        Config.Matrix.rooms = (await self.context.client.joined_rooms()).rooms
+        if Config.Bot.admin_room not in Config.Matrix.rooms:
+            # make sure we join the admin room if not already
+            res = await self.context.client.join(Config.Bot.admin_room)
+            if type(res) is nio.JoinResponse:
+                Config.Matrix.rooms.append(Config.Bot.admin_room)
+                print("+ Joined admin room")
             else:
-                print("+ Joined room: {}".format(room))
-            # dummy sync to consume events arrived while offline
-            await self.context.client.sync(full_state=True)
+                print("- Unable to join admin room ({})".format(res.message))
+        # dummy sync to consume events arrived while offline
+        # TODO: better using first_sync_filter in sync_forever to filter offline events
+        await self.context.client.sync(full_state=True)
         self._init_callbacks()
         try:
             await asyncio.gather(
@@ -125,7 +129,7 @@ class RatStalker:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
                 print(message.term)
-                await messages.MessageSender.send_rooms(message)
+                await messages.MessageSender.send_rooms(message, Config.Matrix.rooms)
 
 
 

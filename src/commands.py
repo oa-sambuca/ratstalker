@@ -1,11 +1,12 @@
 """Commands processed by the bot"""
 
-from typing import List
+from typing import List, Tuple, Dict, Union
 import asyncio
 import re
 import json
 import os
 
+import nio
 import aiofiles
 from deps.oaquery import oaquery
 
@@ -13,6 +14,7 @@ from config import Config
 from src import exceptions
 from src import snapshot
 from src import messages
+from src import matrix
 
 
 
@@ -117,13 +119,79 @@ class NotifyCommand(Command):
     def __init__(self, args: str):
         super().__init__(args)
 
-    async def execute(self) -> messages.NotifyReply:
+    async def execute(self) -> messages.CommandFeedbackReply:
         message = messages.NotifyMessage(self.args.strip('\'"'))
         if self.args:
             await messages.MessageSender.send_rooms(
-                    message, False,
-                    [r for r in Config.Matrix.rooms if r != Config.Bot.admin_room])
-        return messages.NotifyReply(bool(self.args))
+                    message,
+                    [r for r in Config.Matrix.rooms if r != Config.Bot.admin_room],
+                    False)
+        return messages.CommandFeedbackReply(bool(self.args))
+
+class RoomsCommand(Command):
+    """Manage bot rooms
+
+    [admin]
+    syntax: rooms create userid[ ...] | leave [userid | roomid][ ...] | list[ userid] | anomalies
+    """
+    def __init__(self, client: nio.AsyncClient, args: str):
+        super().__init__(args)
+        self.client = client
+
+    async def execute(self) -> Union[messages.RoomsReply, messages.CommandFeedbackReply]:
+        try:
+            action = self.args.split()[0].lower()
+        except IndexError:
+            action = "list"
+        ids = self.args.lstrip()[len(action):].split()
+
+        rooms_infos = []
+        for room in Config.Matrix.rooms:
+            res = await self.client.joined_members(room)
+            if type(res) is nio.JoinedMembersResponse:
+                rooms_infos.append(matrix.Room(room, res.members))
+
+        allok = True
+        if action == "create" and ids:
+            # create one room per user
+            for user in ids:
+                if not any([room.contains_user(user) for room in rooms_infos]):
+                    # only do it if user doesn't already have a room with the bot
+                    res = await self.client.room_create(
+                            visibility = nio.RoomVisibility.private,
+                            name = Config.Bot.name,
+                            federate = True,
+                            is_direct = False,
+                            invite = [user])
+                    ok = type(res) is nio.RoomCreateResponse
+                    if ok:
+                        Config.Matrix.rooms.append(res.room_id)
+                    allok = allok and ok
+            msg = messages.CommandFeedbackReply(allok)
+        elif action == "leave" and ids:
+            for unwanted in ids:
+                if unwanted.startswith('@'):
+                    rooms = [room for room in rooms_infos if room.contains_user(unwanted)]
+                else:
+                    rooms = [unwanted]
+                for room in rooms:
+                    res = await self.client.room_leave(room)
+                    ok = type(res) is nio.RoomLeaveResponse
+                    if ok:
+                        Config.Matrix.rooms.remove(room)
+                        await self.client.room_forget(room)
+                    allok = allok and ok
+            msg = messages.CommandFeedbackReply(allok)
+        elif action == "anomalies":
+            rooms = [room for room in rooms_infos if room.has_anomalies()]
+            msg = messages.RoomsReply(rooms)
+        elif action == "list" and len(ids) == 1:
+            rooms = [room for room in rooms_infos if room.contains_user(ids[0])]
+            msg = messages.RoomsReply(rooms, True)
+        else:
+            msg = messages.RoomsReply(rooms_infos)
+
+        return msg
 
 class HelpCommand(Command):
     """Show help"""
