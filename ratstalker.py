@@ -163,7 +163,7 @@ class Main:
                 store_sync_tokens=True)
         client = nio.AsyncClient(
                 Config.Matrix.server,
-                Config.Matrix.user,
+                Config.Matrix.user_id,
                 device_id=device_id,
                 store_path=Config.Bot.store_dir,
                 config=client_config)

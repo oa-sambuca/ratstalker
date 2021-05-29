@@ -7,8 +7,8 @@ class Config:
         """Configurations for Matrix"""
         # homeserver
         server  : str   = ""
-        # username
-        user    : str   = ""
+        # fully qualified user id in the form: @user:example.com
+        user_id : str   = ""
         # password
         passwd  : str   = ""
         # joined rooms (loaded at run-time)

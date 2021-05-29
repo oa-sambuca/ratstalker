@@ -24,7 +24,7 @@ class RoomMessageCallback(EventCallback):
     requests_count = {}
 
     async def __call__(self, room: nio.MatrixRoom, event: nio.RoomMessageText):
-        if room.user_name(event.sender) != Config.Bot.name:
+        if event.sender != Config.Matrix.user_id:
             if room.room_id != Config.Bot.admin_room:
                 try:
                     self.requests_count[room.room_id] += 1
