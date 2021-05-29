@@ -69,12 +69,15 @@ class RatStalker:
         """Start stalking!"""
         await self.context.client.login(Config.Matrix.passwd)
         await self.context.client.set_displayname(Config.Bot.name)
-        Config.Matrix.rooms = (await self.context.client.joined_rooms()).rooms
-        if Config.Bot.admin_room not in Config.Matrix.rooms:
+        while True:
+            joined_rooms = await self.context.client.joined_rooms()
+            if type(joined_rooms) is nio.JoinedRoomsResponse:
+                break
+            asyncio.sleep(10)
+        if Config.Bot.admin_room not in joined_rooms.rooms:
             # make sure we join the admin room if not already
             res = await self.context.client.join(Config.Bot.admin_room)
             if type(res) is nio.JoinResponse:
-                Config.Matrix.rooms.append(Config.Bot.admin_room)
                 print("+ Joined admin room")
             else:
                 print("- Unable to join admin room ({})".format(res.message))
@@ -129,7 +132,8 @@ class RatStalker:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
                 print(message.term)
-                await messages.MessageSender.send_rooms(message, Config.Matrix.rooms)
+                joined_rooms = (await self.context.client.joined_rooms()).rooms
+                await messages.MessageSender.send_rooms(message, joined_rooms)
 
 
 

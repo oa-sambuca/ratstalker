@@ -51,7 +51,7 @@ class RoomMessageCallback(EventCallback):
                     pass
                 # [admin]
                 elif cmd == "notify" and room.room_id == Config.Bot.admin_room:
-                    command = commands.NotifyCommand(args)
+                    command = commands.NotifyCommand(self.context.client, args)
                 elif cmd == "rooms" and room.room_id == Config.Bot.admin_room:
                     command = commands.RoomsCommand(self.context.client, args)
 
@@ -85,7 +85,5 @@ class RoomInviteCallback(EventCallback):
     async def __call__(self, room: nio.MatrixRoom, event: nio.InviteEvent):
         print("+ Accepting invite for room {}".format(room.room_id))
         res = await self.context.client.join(room.room_id)
-        if type(res) is nio.JoinResponse:
-            Config.Matrix.rooms.append(room.room_id)
-        else:
+        if type(res) is nio.JoinError:
             print("- Unable to join room {} ({})".format(room.room_id, res.message))

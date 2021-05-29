@@ -11,8 +11,6 @@ class Config:
         user_id : str   = ""
         # password
         passwd  : str   = ""
-        # joined rooms (loaded at run-time)
-        rooms   : list  = []
 
     class Bot:
         """Configurations for the bot"""
