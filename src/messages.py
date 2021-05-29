@@ -335,23 +335,28 @@ class MonitorReply(Reply):
         self.html = self.html_template.format(is_enabled = is_enabled)
 
 class RoomsReply(Reply):
-    """Reply for room commands returning a list of rooms"""
+    """Reply for room commands returning a list of rooms
+
+    Admin room and bot user are implicit and not included in the listings
+    """
     text_template = "{room}: {members}"
     term_template = text_template
     html_template = "<b>{room}</b>: {members}"
 
     def __init__(self, rooms: List[matrix.Room], rooms_only: bool = False):
         if rooms_only and rooms:
-            self.text = self.term = self.html = ' '.join([room.name for room in rooms])
+            self.text = self.term = self.html = ' '.join([room.room_id for room in rooms])
         elif rooms:
             self.text = self.term = '\n'.join([self.text_template.format(
-                room = room.name, 
-                members = ', '.join(["{} ({})".format(m.user_id, m.display_name) for m in room.members]))
-                for room in rooms])
+                room = room.room_id,
+                members = ', '.join(["{} ({})".format(m.user_id, m.display_name)
+                    for m in room.members if m.user_id != Config.Matrix.user_id]))
+                for room in rooms if room.room_id != Config.Bot.admin_room])
             self.html = '<br>'.join([self.html_template.format(
-                room = room.name, 
-                members = ', '.join(["{} ({})".format(m.user_id, m.display_name) for m in room.members]))
-                for room in rooms])
+                room = room.room_id,
+                members = ', '.join(["{} ({})".format(m.user_id, m.display_name)
+                    for m in room.members if m.user_id != Config.Matrix.user_id]))
+                for room in rooms if room.room_id != Config.Bot.admin_room])
         else:
             self.text = self.term = self.html = "No result"
 
