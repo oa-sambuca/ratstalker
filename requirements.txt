@@ -1,6 +1,6 @@
-aiofiles==0.4.0
+aiofiles==0.6.0
 aiohttp==3.7.4.post0
-aiohttp-socks==0.5.5
+aiohttp-socks==0.6.0
 async-timeout==3.0.1
 atomicwrites==1.4.0
 attrs==20.3.0
@@ -8,14 +8,14 @@ cachetools==4.2.1
 cffi==1.14.5
 chardet==4.0.0
 future==0.18.2
-h11==0.9.0
-h2==3.2.0
-hpack==3.0.0
-hyperframe==5.2.0
+h11==0.12.0
+h2==4.0.0
+hpack==4.0.0
+hyperframe==6.0.1
 idna==3.1
 jsonschema==3.2.0
 Logbook==1.5.3
-matrix-nio==0.17.0
+matrix-nio==0.18.6
 multidict==5.1.0
 peewee==3.14.4
 pycparser==2.20
@@ -25,5 +25,5 @@ python-olm==3.1.3
 python-socks==1.2.4
 six==1.15.0
 typing-extensions==3.7.4.3
-unpaddedbase64==1.1.0
+unpaddedbase64==2.1.0
 yarl==1.6.3
