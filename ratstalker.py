@@ -15,6 +15,7 @@ from src import callbacks
 from src import exceptions
 from src import snapshot
 from src import messages
+from src import persistence
 
 
 
@@ -53,20 +54,10 @@ class RatStalker:
                     callbacks.RoomInviteCallback(self.context),
                     nio.InviteEvent)
     
-    async def _load_stalk_list(self):
-        stalk_list_file = os.path.join(Config.Bot.store_dir, Config.Players.stalk_list_file)
-        try:
-            async with aiofiles.open(stalk_list_file, "r") as f:
-                Config.Players.stalk_list = set(json.loads(await f.read()))
-        except FileNotFoundError:
-            print("+ Creating stalk list file: {}".format(stalk_list_file))
-            async with aiofiles.open(stalk_list_file, 'w') as f:
-                await f.write(json.dumps(list()))
-        except json.JSONDecodeError:
-            print("! Malformed stalk list file")
-
     async def start_stalking(self):
         """Start stalking!"""
+        # create stalk list table if it doesn't exist
+        persistence.db.create_tables([persistence.RatstalkerStalkLists])
         await self.context.client.login(Config.Matrix.passwd)
         await self.context.client.set_displayname(Config.Bot.name)
         while True:
@@ -95,7 +86,6 @@ class RatStalker:
             raise
 
     async def _monitor_servers(self):
-        await self._load_stalk_list()
         if Config.Bot.monitor:
             self.context.monitor_wakeup_event.set()
         while await self.context.monitor_wakeup_event.wait():
@@ -116,24 +106,31 @@ class RatStalker:
                 # No snapshot with server id sid in last_snapshot (e.g. at start)
                 # => compare against a DummyServerSnapshot
                 matched_rules = ssnap.compare(snapshot.DummyServerSnapshot(ssnap.timestamp))
+            rooms = (await self.context.client.joined_rooms()).rooms
+            msgs = {}
             for rule in matched_rules:
                 ruletype = type(rule)
                 if ruletype is snapshot.OverThresholdRule:
-                    message = messages.OverThresholdNotification(ssnap)
+                    msgs = {messages.OverThresholdNotification(ssnap) : rooms}
                 elif ruletype is snapshot.UnderThresholdRule:
-                    message = messages.UnderThresholdNotification(ssnap)
+                    msgs = {messages.UnderThresholdNotification(ssnap) : rooms}
                 elif ruletype is snapshot.DurationRule:
-                    message = messages.DurationNotification(ssnap)
-                elif ruletype is snapshot.PlayerEnterRule:
-                    message = messages.PlayerEnterNotification(rule.players, ssnap)
-                elif ruletype is snapshot.PlayerLeaveRule:
-                    message = messages.PlayerLeaveNotification(rule.players, ssnap)
+                    msgs = {messages.DurationNotification(ssnap) : rooms}
+                elif ruletype is snapshot.StalkEnterRule:
+                    msgs = dict(zip(
+                        [messages.StalkEnterNotification([player], ssnap) for player in rule.stalked_players.keys()],
+                        rule.stalked_players.values()))
+                elif ruletype is snapshot.StalkLeaveRule:
+                    msgs = dict(zip(
+                        [messages.StalkLeaveNotification([player], ssnap) for player in rule.stalked_players.keys()],
+                        rule.stalked_players.values()))
                 else:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
-                print(message.term)
-                joined_rooms = (await self.context.client.joined_rooms()).rooms
-                await messages.MessageSender.send_rooms(message, joined_rooms)
+
+                for msg in msgs.keys():
+                    print(msg.term)
+                    await messages.MessageSender.send_rooms(msg, msgs[msg])
 
 
 

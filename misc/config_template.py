@@ -33,6 +33,8 @@ class Config:
         bot_owned_rooms : bool  = True
         # maximum number of user requests in a monitor_time interval
         requests_limit  : int   = 15
+        # maximum number of stalked players per user
+        stalk_limit     : int   = 100
 
     class Thresholds:
         """Number of players on a server that are considered meaningful"""
@@ -46,14 +48,6 @@ class Config:
         default         : int   = 4
         # minutes after which a duration notification can be sent
         duration_time   : int   = 30
-
-    class Players:
-        """Configurations related to players"""
-        # players to stalk for entering/leaving servers
-        # loaded at run-time from persistent storage
-        stalk_list      : set   = set()
-        # file used to save/load the stalk list, saved in the Bot.store_dir
-        stalk_list_file : str   = "stalk_list"
 
     class OAQuery:
         """Configurations for oaquery library"""

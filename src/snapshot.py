@@ -3,9 +3,11 @@ from typing import Dict, List
 import time
 import html
 
+from deps.oaquery import oaquery
+
 from config import Config
 from src import messages
-from deps.oaquery import oaquery
+from src.persistence import RatstalkerStalkLists
 
 
 
@@ -142,9 +144,9 @@ class DuelServerSnapshot(ServerSnapshot):
         self.attach_rules(
                 UnderThresholdRule(threshold),
                 OverThresholdRule(threshold),
-                DurationRule(threshold))
-                #PlayerLeaveRule(),
-                #PlayerEnterRule())
+                DurationRule(threshold),
+                StalkLeaveRule(),
+                StalkEnterRule())
         return self.evaluate_rules(prev_snap)
 
 class CityServerSnapshot(ServerSnapshot):
@@ -153,7 +155,9 @@ class CityServerSnapshot(ServerSnapshot):
         self.attach_rules(
                 UnderThresholdRule(threshold),
                 OverThresholdRule(threshold),
-                DurationRule(threshold))
+                DurationRule(threshold),
+                StalkLeaveRule(),
+                StalkEnterRule())
         return self.evaluate_rules(prev_snap)
 
 class DefaultServerSnapshot(ServerSnapshot):
@@ -162,9 +166,9 @@ class DefaultServerSnapshot(ServerSnapshot):
         self.attach_rules(
                 UnderThresholdRule(threshold),
                 OverThresholdRule(threshold),
-                DurationRule(threshold))
-                #PlayerLeaveRule(),
-                #PlayerEnterRule())
+                DurationRule(threshold),
+                StalkLeaveRule(),
+                StalkEnterRule())
         return self.evaluate_rules(prev_snap)
 
 class DummyServerSnapshot(ServerSnapshot):
@@ -244,28 +248,32 @@ class DurationRule(RelevanceRule):
     def _post_match(self, snapshot: ServerSnapshot):
         snapshot.state.last_duration = snapshot.timestamp
 
-class PlayerEnterRule(RelevanceRule):
-    """Some players entered the server"""
+class StalkRule(RelevanceRule):
+    """Base class for stalk rule"""
     def __init__(self):
-        self.players: List[messages.MessageArenaString] = []
+        if type(self) is StalkRule:
+            raise NotImplementedError
+        # {stalked_player : rooms_to_be_notified, ...}
+        self.stalked_players: Dict[str, List[str]] = {}
 
+    def _detect_stalked_players(self, players: List[messages.MessageArenaString]) -> bool:
+        for player in players:
+            rooms = [entry.room_id for entry in
+                    RatstalkerStalkLists.select().where(RatstalkerStalkLists.player == player.get_text())]
+            if rooms:
+                self.stalked_players[player] = rooms
+        return bool(self.stalked_players)
+
+class StalkEnterRule(StalkRule):
+    """Some stalked players entered the server"""
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
-        self.players = [p for p in curr.get_players() if (
-            p.get_text() in Config.Players.stalk_list and p.get_text() not in prev.get_players_text())]
-        return bool(self.players)
+        players = [p for p in curr.get_players() if (
+            p.get_text() not in prev.get_players_text())]
+        return(self._detect_stalked_players(players))
 
-    def _post_match(self, snapshot: ServerSnapshot):
-        pass
-
-class PlayerLeaveRule(RelevanceRule):
-    """Some players left the server"""
-    def __init__(self):
-        self.players: List[messages.MessageArenaString] = []
-
+class StalkLeaveRule(StalkRule):
+    """Some stalked players left the server"""
     def evaluate(self, prev: ServerSnapshot, curr: ServerSnapshot) -> bool:
-        self.players = [p for p in prev.get_players() if (
-            p.get_text() in Config.Players.stalk_list and p.get_text() not in curr.get_players_text())]
-        return bool(self.players)
-
-    def _post_match(self, snapshot: ServerSnapshot):
-        pass
+        players = [p for p in prev.get_players() if (
+            p.get_text() not in curr.get_players_text())]
+        return(self._detect_stalked_players(players))

@@ -44,7 +44,7 @@ class RoomMessageCallback(EventCallback):
                 elif cmd == "hunt":
                     command = commands.HuntCommand(self.context.last_snapshot, args)
                 elif cmd == "stalk":
-                    #command = commands.StalkCommand(args)
+                    command = commands.StalkCommand(room.room_id, args)
                     pass
                 elif cmd == "monitor":
                     #command = commands.MonitorCommand(self.context.monitor_wakeup_event, args)

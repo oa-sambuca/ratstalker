@@ -217,7 +217,7 @@ class DurationNotification(Notification):
                 mode = snap.get_game_mode(),
                 server = snap.get_servername_html())
 
-class PlayerNotification(Notification):
+class StalkNotification(Notification):
     def __init__(self, players: List[MessageArenaString], snap: snapshot.ServerSnapshot):
 
         self.text = self.text_template.format(
@@ -232,13 +232,13 @@ class PlayerNotification(Notification):
                 players = self.get_comma_separated_string([player.get_html() for player in players]),
                 server = snap.get_servername_html())
 
-class PlayerEnterNotification(PlayerNotification):
+class StalkEnterNotification(StalkNotification):
     """Notification of some players entering the server"""
     text_template = "[->] {players} entered {server}"
     term_template = TermPalette.strgreen("→")+" {players} entered {server}"
     html_template = HtmlPalette.strgreen("→")+" {players} entered <b>{server}</b>"
 
-class PlayerLeaveNotification(PlayerNotification):
+class StalkLeaveNotification(StalkNotification):
     """Notification for some players leaving the server"""
     text_template = "[<-] {players} left {server}"
     term_template = TermPalette.strred("←")+" {players} left {server}"
@@ -311,14 +311,14 @@ class StalkReply(Reply):
     text_template = "Currently in the stalk list: {players}"
     term_template = html_template = text_template
 
-    def __init__(self, no_echo: bool = False):
+    def __init__(self, players: List[str] = [], no_echo: bool = False):
         if no_echo:
             self.text = "Done"
-        elif not Config.Players.stalk_list:
+        elif not players:
             self.text = "No player in the stalk list"
         else:
             self.text = self.text_template.format(
-                players = self.get_comma_separated_string(Config.Players.stalk_list))
+                    players = self.get_comma_separated_string(players))
         self.term = self.html = self.text
 
 class MonitorReply(Reply):
@@ -366,7 +366,7 @@ class HelpReply(Reply):
             "Usage: "                                                   +
             "query[ keyword ...] | "                                    +
             "hunt player[, ...] | "                                     +
-            #"stalk list|clear|save|restore|[add|del player[, ...]] | "    +
+            "stalk list |clear | [add | del player[, ...]] | "          +
             #"monitor[ on|off] | "                                         +
             "help")
     term_template = text_template
@@ -374,7 +374,7 @@ class HelpReply(Reply):
             "Usage: "                                                                           +
             HtmlPalette.strcyan("query")+"[ keyword ...] | "                                    +
             HtmlPalette.strcyan("hunt")+" player[, ...] | "                                     +
-            #HtmlPalette.strcyan("stalk")+" list|clear|save|restore|[add|del player[, ...]] | "    +
+            HtmlPalette.strcyan("stalk")+" list | clear | [add | del player[, ...]] | "               +
             #HtmlPalette.strcyan("monitor")+"[ on|off] | "                                         +
             HtmlPalette.strcyan("help"))
 
