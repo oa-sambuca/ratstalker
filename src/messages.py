@@ -95,30 +95,39 @@ class TermPalette(ColorPalette):
 
 
 
-class MessageArenaString:
-    def __init__(self, string: ArenaString):
-        self.string = string
-
-    def get_text(self) -> str:
-        return self.string.getstr()
-
-    def get_term(self) -> str:
-        return self.string.getstr(True)
-
-    def get_html(self) -> str:
-        return self.string.gethtml(HtmlPalette.colormap)
-
-
-
-class Message:
-    text_template = ""
-    term_template = ""
-    html_template = ""
-
+class FormattedString:
     def __init__(self, text: str, term: str = None, html: str = None):
         self.text = text
         self.term = term if term else text
         self.html = html if html else text
+
+    @classmethod
+    def from_arenastring(cls, arenastring: ArenaString):
+        return cls(
+                arenastring.getstr(),
+                arenastring.getstr(True),
+                arenastring.gethtml(HtmlPalette.colormap))
+
+    def get_text(self) -> str:
+        return self.text
+
+    def get_term(self) -> str:
+        return self.term
+
+    def get_html(self) -> str:
+        return self.html
+
+
+
+class Message():
+    """Base class for messages"""
+    text_template = ""
+    term_template = ""
+    html_template = ""
+
+    def __init__(self):
+        if type(self) is Message:
+            raise NotImplementedError
 
     @staticmethod
     def get_comma_separated_string(strings: Iterable[str]) -> str:
@@ -218,7 +227,7 @@ class DurationNotification(Notification):
                 server = snap.get_servername_html())
 
 class StalkNotification(Notification):
-    def __init__(self, players: List[MessageArenaString], snap: snapshot.ServerSnapshot):
+    def __init__(self, players: List[FormattedString], snap: snapshot.ServerSnapshot):
 
         self.text = self.text_template.format(
                 players = self.get_comma_separated_string([player.get_text() for player in players]),

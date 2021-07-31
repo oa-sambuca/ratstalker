@@ -78,8 +78,8 @@ class ServerSnapshot:
         self.state = last_state
         self.relevance_rules: List[RelevanceRule] = []
 
-    def get_servername(self) -> messages.MessageArenaString:
-        return messages.MessageArenaString(self.info.name().strip())
+    def get_servername(self) -> messages.FormattedString:
+        return messages.FormattedString.from_arenastring(self.info.name().strip())
 
     def get_servername_text(self) -> str:
         return self.get_servername().get_text()
@@ -105,8 +105,8 @@ class ServerSnapshot:
     def get_num_players(self) -> int:
         return self.info.num_humans()
 
-    def get_players(self) -> List[messages.MessageArenaString]:
-        return [messages.MessageArenaString(player.name.strip()) for player in self.info.likely_human_players()]
+    def get_players(self) -> List[messages.FormattedString]:
+        return [messages.FormattedString.from_arenastring(player.name.strip()) for player in self.info.likely_human_players()]
 
     def get_players_text(self) -> List[str]:
         return [player.get_text() for player in self.get_players()]
@@ -256,7 +256,7 @@ class StalkRule(RelevanceRule):
         # {stalked_player : rooms_to_be_notified, ...}
         self.stalked_players: Dict[str, List[str]] = {}
 
-    def _detect_stalked_players(self, players: List[messages.MessageArenaString]) -> bool:
+    def _detect_stalked_players(self, players: List[messages.FormattedString]) -> bool:
         for player in players:
             rooms = [entry.room_id for entry in
                     RatstalkerStalkLists.select().where(RatstalkerStalkLists.player == player.get_text())]
