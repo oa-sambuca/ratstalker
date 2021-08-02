@@ -3,11 +3,8 @@
 from typing import List, Tuple, Dict, Union
 import asyncio
 import re
-import os
 
 import nio
-import aiofiles
-from deps.oaquery import oaquery
 import peewee
 
 from config import Config
@@ -15,8 +12,7 @@ from src import exceptions
 from src import snapshot
 from src import messages
 from src import matrix
-from src import persistence
-from src.persistence import RatstalkerStalkLists
+from src.persistence import RatstalkerDatabase
 
 
 
@@ -80,34 +76,19 @@ class StalkCommand(Command):
         # use re.split() to split commas only when they don't follow a backslash
         players = [p.strip().replace('\,',',') for p in re.split(r'(?<!\\),', self.args[len(action):])]
         if action == "add" and players:
-            stalked_count = RatstalkerStalkLists.select().where(
-                    RatstalkerStalkLists.room_id == self.room_id).count()
+            stalked_count = RatstalkerDatabase.count_stalked_players(self.room_id)
             exceeding_count = stalked_count + len(players) - Config.Bot.stalk_limit
             if exceeding_count > 0:
                 raise exceptions.CommandError("Stalked players limit exceeded by {} (max {})".format(
                     exceeding_count, Config.Bot.stalk_limit))
-            with persistence.db.atomic() as transaction:
-                for player in players:
-                    try:
-                        RatstalkerStalkLists.create(
-                                room_id = self.room_id,
-                                player = player)
-                    except peewee.IntegrityError as e:
-                        # just discard constraint violations on insert
-                        pass
+            RatstalkerDatabase.add_stalkings(self.room_id, players)
         elif action == "del" and players:
-            with persistence.db.atomic() as transaction:
-                for player in players:
-                    RatstalkerStalkLists.delete().where(
-                            (RatstalkerStalkLists.room_id == self.room_id) &
-                            (RatstalkerStalkLists.player == player)).execute()
+            RatstalkerDatabase.del_stalkings(self.room_id, players)
         elif action == "clear":
-            RatstalkerStalkLists.delete().where(
-                    RatstalkerStalkLists.room_id == self.room_id).execute()
+            RatstalkerDatabase.clear_stalkings(self.room_id)
 
-        stalked_players = [entry.player for entry in
-                RatstalkerStalkLists.select().where(RatstalkerStalkLists.room_id == self.room_id)]
-        return messages.StalkReply(stalked_players)
+        current_players = RatstalkerDatabase.list_stalkings(self.room_id)
+        return messages.StalkReply([messages.FormattedString(p.player_text, p.player_term, p.player_html) for p in current_players])
 
 class MonitorCommand(Command):
     """Set or get the monitor option
@@ -213,10 +194,7 @@ class RoomsCommand(Command):
                     res = await self.client.room_forget(room.room_id)
                     success = success and type(res) is nio.RoomForgetResponse
                 # clear the rooms' stalk lists
-                with persistence.db.atomic():
-                    for room in rooms:
-                        RatstalkerStalkLists.delete().where(
-                                RatstalkerStalkLists.room_id == room.room_id).execute()
+                RatstalkerDatabase.delete_rooms([r.room_id for r in rooms])
                 rooms_infos = await retrieve_rooms_from_server()
             msg = messages.CommandFeedbackReply(success)
         elif action == "anomalies":

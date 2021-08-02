@@ -136,4 +136,4 @@ dmypy.json
 # config contains sensitive data
 config.py
 # nio store
-nio_store/
+db_stores/

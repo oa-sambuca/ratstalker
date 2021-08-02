@@ -61,10 +61,7 @@ class RoomMessageCallback(EventCallback):
                 except exceptions.CommandError as e:
                     errstring = "Command execution error: {}".format(e)
                     print("! {}".format(errstring))
-                    message = messages.Reply(errstring)
-                except Exception as e:
-                    message = messages.Reply("Unexpected exception")
-                    raise
+                    message = messages.Reply(messages.FormattedString(errstring))
                 finally:
                     await self.context.client.room_typing(room.room_id, False)
 

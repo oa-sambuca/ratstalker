@@ -7,7 +7,7 @@ from deps.oaquery import oaquery
 
 from config import Config
 from src import messages
-from src.persistence import RatstalkerStalkLists
+from src.persistence import RatstalkerDatabase
 
 
 
@@ -254,14 +254,17 @@ class StalkRule(RelevanceRule):
         if type(self) is StalkRule:
             raise NotImplementedError
         # {stalked_player : rooms_to_be_notified, ...}
-        self.stalked_players: Dict[str, List[str]] = {}
+        self.stalked_players: Dict[messages.FormattedString, List[str]] = {}
 
     def _detect_stalked_players(self, players: List[messages.FormattedString]) -> bool:
         for player in players:
-            rooms = [entry.room_id for entry in
-                    RatstalkerStalkLists.select().where(RatstalkerStalkLists.player == player.get_text())]
-            if rooms:
-                self.stalked_players[player] = rooms
+            interested_rooms = RatstalkerDatabase.find_interested_rooms(player.get_text())
+            if interested_rooms:
+                self.stalked_players[player] = interested_rooms
+        # update the formatted string filelds of the players in the database
+        if self.stalked_players:
+            RatstalkerDatabase.refresh_players_strings(self.stalked_players.keys())
+
         return bool(self.stalked_players)
 
 class StalkEnterRule(StalkRule):

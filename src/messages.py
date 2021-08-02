@@ -125,9 +125,10 @@ class Message():
     term_template = ""
     html_template = ""
 
-    def __init__(self):
+    def __init__(self, string: FormattedString):
         if type(self) is Message:
             raise NotImplementedError
+        self.text, self.term, self.html = string.get_text(), string.get_term(), string.get_html()
 
     @staticmethod
     def get_comma_separated_string(strings: Iterable[str]) -> str:
@@ -320,15 +321,18 @@ class StalkReply(Reply):
     text_template = "Currently in the stalk list: {players}"
     term_template = html_template = text_template
 
-    def __init__(self, players: List[str] = [], no_echo: bool = False):
+    def __init__(self, players: List[FormattedString] = [], no_echo: bool = False):
         if no_echo:
-            self.text = "Done"
+            self.text = self.term = self.html = "Done"
         elif not players:
-            self.text = "No player in the stalk list"
+            self.text = self.term = self.html = "No player in the stalk list"
         else:
             self.text = self.text_template.format(
-                    players = self.get_comma_separated_string(players))
-        self.term = self.html = self.text
+                    players = self.get_comma_separated_string([p.get_text() for p in players]))
+            self.term = self.term_template.format(
+                    players = self.get_comma_separated_string([p.get_term() for p in players]))
+            self.html = self.html_template.format(
+                    players = self.get_comma_separated_string([p.get_html() for p in players]))
 
 class MonitorReply(Reply):
     """Reply for the monitor command"""

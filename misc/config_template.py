@@ -24,9 +24,11 @@ class Config:
         # decrease for higher responsiveness, increase for lower resources usage
         sync_time       : int   = 500
         # path to the bot store
-        store_dir       : str   = "nio_store/"
-        # name of the store inside the store_dir
-        store_name      : str   = "{}.db".format(name)
+        store_dir       : str   = "db_stores/"
+        # name of the nio store inside the store_dir
+        nio_store_name  : str   = "matrix-nio.db"
+        # name of the bot store inside the store_dir
+        bot_store_name  : str   = "{}.db".format(name.lower())
         # room from which privileged commands are allowed
         admin_room      : str   = ""
         # whether to operate with bot-owned rooms (as opposed to user-owned rooms)
