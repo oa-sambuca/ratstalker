@@ -6,6 +6,7 @@ import asyncio
 import os
 import sqlite3
 import json
+from typing import List, Tuple
 
 import nio
 import aiofiles
@@ -99,6 +100,8 @@ class RatStalker:
             await asyncio.sleep(Config.Bot.monitor_time * 60)
 
     async def _process_snapshots(self, snap: snapshot.GlobalSnapshot):
+        # [(message: [room, ...]), ...]
+        notifications: List[Tuple[messages.Notification, List[str]]] = []
         for sid, ssnap in snap.servers_snaps.items():
             try:
                 matched_rules = ssnap.compare(self.context.last_snapshot.servers_snaps[sid])
@@ -107,30 +110,64 @@ class RatStalker:
                 # => compare against a DummyServerSnapshot
                 matched_rules = ssnap.compare(snapshot.DummyServerSnapshot(ssnap.timestamp))
             rooms = (await self.context.client.joined_rooms()).rooms
-            msgs = {}
             for rule in matched_rules:
                 ruletype = type(rule)
                 if ruletype is snapshot.OverThresholdRule:
-                    msgs = {messages.OverThresholdNotification(ssnap) : rooms}
+                    notifications.append((messages.OverThresholdNotification(ssnap), rooms))
                 elif ruletype is snapshot.UnderThresholdRule:
-                    msgs = {messages.UnderThresholdNotification(ssnap) : rooms}
+                    notifications.append((messages.UnderThresholdNotification(ssnap), rooms))
                 elif ruletype is snapshot.DurationRule:
-                    msgs = {messages.DurationNotification(ssnap) : rooms}
+                    notifications.append((messages.DurationNotification(ssnap), rooms))
                 elif ruletype is snapshot.StalkEnterRule:
-                    msgs = dict(zip(
-                        [messages.StalkEnterNotification([player], ssnap) for player in rule.stalked_players.keys()],
-                        rule.stalked_players.values()))
+                    notifications += [
+                            (messages.StalkEnterNotification(p, ssnap), r)
+                            for p, r in zip(
+                                rule.stalked_players.keys(),
+                                rule.stalked_players.values())]
                 elif ruletype is snapshot.StalkLeaveRule:
-                    msgs = dict(zip(
-                        [messages.StalkLeaveNotification([player], ssnap) for player in rule.stalked_players.keys()],
-                        rule.stalked_players.values()))
+                    notifications += [
+                            (messages.StalkLeaveNotification(p, ssnap), r)
+                            for p, r in zip(
+                                rule.stalked_players.keys(),
+                                rule.stalked_players.values())]
                 else:
                     print("! Unable to handle rule: {}".format(ruletype))
                     continue
 
-                for msg in msgs.keys():
-                    print(msg.term)
-                    await messages.MessageSender.send_rooms(msg, msgs[msg])
+        if notifications:
+            await self._send_notifications(notifications)
+
+    async def _send_notifications(self, notifications: List[Tuple[messages.Notification, List[str]]]):
+        """Send notifications (after reordering)"""
+        # Prevent out of order stalk notifications:
+        #
+        # player left S1 and then entered S2 event order:
+        # OUT1 -> IN2
+        # resulting notification order:
+        # OUT1 -> IN2 (good) or IN2 -> OUT1 (bad)
+        #
+        # The ambiguity is because the relative order of two notifications in
+        # the same global snapshot depends on the server order in the snapshots
+        # list (which is totally arbitrary, basically following the order in
+        # the config file).
+        # To enforce the proper order we delay enter notifications to ensure
+        # they are always sent after any leave notification, since it's
+        # reasonable to assume that one cannot enter a server without leaving
+        # the previous one first
+        leave_queue, enter_queue, generic_queue = [], [], []
+        for message, rooms in notifications:
+            # populate queues
+            msgtype = type(message)
+            if msgtype is messages.StalkLeaveNotification:
+                queue = leave_queue
+            elif msgtype is messages.StalkEnterNotification:
+                queue = enter_queue
+            else:
+                queue = generic_queue
+            queue.append((message, rooms))
+        for message, rooms in leave_queue + enter_queue + generic_queue:
+            print(message.term)
+            await messages.MessageSender.send_rooms(message, rooms)
 
 
 

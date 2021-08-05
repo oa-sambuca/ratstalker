@@ -228,31 +228,31 @@ class DurationNotification(Notification):
                 server = snap.get_servername_html())
 
 class StalkNotification(Notification):
-    def __init__(self, players: List[FormattedString], snap: snapshot.ServerSnapshot):
+    def __init__(self, player: FormattedString, snap: snapshot.ServerSnapshot):
 
         self.text = self.text_template.format(
-                players = self.get_comma_separated_string([player.get_text() for player in players]),
+                player = player.get_text(),
                 server = snap.get_servername_text())
 
         self.term = self.term_template.format(
-                players = self.get_comma_separated_string([player.get_term() for player in players]),
+                player = player.get_term(),
                 server = snap.get_servername_term())
 
         self.html = self.html_template.format(
-                players = self.get_comma_separated_string([player.get_html() for player in players]),
+                player = player.get_html(),
                 server = snap.get_servername_html())
 
 class StalkEnterNotification(StalkNotification):
-    """Notification of some players entering the server"""
-    text_template = "[->] {players} entered {server}"
-    term_template = TermPalette.strgreen("→")+" {players} entered {server}"
-    html_template = HtmlPalette.strgreen("→")+" {players} entered <b>{server}</b>"
+    """Notification for player entering the server"""
+    text_template = "[->] {player} entered {server}"
+    term_template = TermPalette.strgreen("→")+" {player} entered {server}"
+    html_template = HtmlPalette.strgreen("→")+" {player} entered <b>{server}</b>"
 
 class StalkLeaveNotification(StalkNotification):
-    """Notification for some players leaving the server"""
-    text_template = "[<-] {players} left {server}"
-    term_template = TermPalette.strred("←")+" {players} left {server}"
-    html_template = HtmlPalette.strred("←")+" {players} left <b>{server}</b>"
+    """Notification for player leaving the server"""
+    text_template = "[<-] {player} left {server}"
+    term_template = TermPalette.strred("←")+" {player} left {server}"
+    html_template = HtmlPalette.strred("←")+" {player} left <b>{server}</b>"
 
 # replies
 
