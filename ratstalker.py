@@ -167,7 +167,8 @@ class RatStalker:
             queue.append((message, rooms))
         for message, rooms in leave_queue + enter_queue + generic_queue:
             print(message.term)
-            await messages.MessageSender.send_rooms(message, rooms)
+            notice = False if type(message) is messages.StalkEnterNotification else True
+            await messages.MessageSender.send_rooms(message, rooms, notice)
 
 
 
