@@ -199,15 +199,18 @@ class UnderThresholdNotification(Notification):
 
 class DurationNotification(Notification):
     """Notification for the match duration"""
-    text_template = "[*] {server}: {players} {tobe} still having a lot of fun @ {mapname}/{mode}"
-    term_template = TermPalette.strcyan("●")+" {server}: {players} {tobe} still having a lot of fun @ {mapname}/{mode}"
-    html_template = HtmlPalette.strcyan("●")+" <b>{server}</b>: {players} {tobe} still having a lot of fun @ <b>{mapname}</b>/{mode}"
+    text_template = "[*] {server}: {nplayers} player{s} {tobe} still having a lot of fun @ {mapname}/{mode} ({players})"
+    term_template = TermPalette.strcyan("●")+" {server}: {nplayers} player{s} {tobe} still having a lot of fun @ {mapname}/{mode} ({players})"
+    html_template = HtmlPalette.strcyan("●")+" <b>{server}</b>: {nplayers} player{s} {tobe} still having a lot of fun @ <b>{mapname}</b>/{mode} ({players})"
 
     def __init__(self, snap: snapshot.ServerSnapshot):
         tobe = 'is' if snap.get_num_players() == 1 else 'are'
+        s = '' if snap.get_num_players() == 1 else 's'
 
         self.text = self.text_template.format(
                 players = self.get_comma_separated_string(snap.get_players_text()),
+                nplayers = snap.get_num_players(),
+                s = s,
                 tobe = tobe,
                 mapname = snap.get_map_text(),
                 mode = snap.get_game_mode(),
@@ -215,6 +218,8 @@ class DurationNotification(Notification):
 
         self.term = self.term_template.format(
                 players = self.get_comma_separated_string(snap.get_players_term()),
+                nplayers = snap.get_num_players(),
+                s = s,
                 tobe = tobe,
                 mapname = snap.get_map_term(),
                 mode = snap.get_game_mode(),
@@ -222,6 +227,8 @@ class DurationNotification(Notification):
 
         self.html = self.html_template.format(
                 players = self.get_comma_separated_string(snap.get_players_html()),
+                nplayers = snap.get_num_players(),
+                s = s,
                 tobe = tobe,
                 mapname = snap.get_map_html(),
                 mode = snap.get_game_mode(),
