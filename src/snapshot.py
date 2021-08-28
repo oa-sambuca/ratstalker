@@ -74,6 +74,10 @@ class ServerSnapshot:
         if type(self) is ServerSnapshot:
             raise NotImplementedError
         self.info = info
+        self.players = sorted(
+                [messages.FormattedString.from_arenastring(player.name.strip())
+                    for player in self.info.likely_human_players()],
+            key=lambda fmt: fmt.get_text().lower())
         self.timestamp = timestamp
         self.state = last_state
         self.relevance_rules: List[RelevanceRule] = []
@@ -106,7 +110,7 @@ class ServerSnapshot:
         return self.info.num_humans()
 
     def get_players(self) -> List[messages.FormattedString]:
-        return [messages.FormattedString.from_arenastring(player.name.strip()) for player in self.info.likely_human_players()]
+        return self.players
 
     def get_players_text(self) -> List[str]:
         return [player.get_text() for player in self.get_players()]
@@ -182,7 +186,8 @@ class DummyServerSnapshot(ServerSnapshot):
     # state from the RelevanceRule's evaluate() point of view (i.e. just
     # override the attributes and methods used by prev)
     def __init__(self, timestamp: float):
-        super().__init__(None, timestamp, timestamp)
+        info = oaquery.ServerInfo(None, None, None, None, [])
+        super().__init__(info, timestamp, timestamp)
 
     def get_num_players(self) -> int:
         return 0

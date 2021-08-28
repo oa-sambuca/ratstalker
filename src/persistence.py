@@ -134,7 +134,8 @@ class RatstalkerDatabase:
                     StalkedPlayers.player_html)
                 .join(Stalkings)
                 .where(StalkingRooms.room == room)
-                .join(StalkingRooms))
+                .join(StalkingRooms)
+                .order_by(fn.Lower(StalkedPlayers.player_text)))
 
     @classmethod
     @db_session
