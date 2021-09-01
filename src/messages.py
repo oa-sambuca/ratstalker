@@ -103,8 +103,20 @@ class FormattedString:
 
     @classmethod
     def from_arenastring(cls, arenastring: ArenaString):
+        # Workaround to html collapsing contiguous spaces in a string:
+        # - use '&nbsp;': spaces are preserved but we lose line breaking ability
+        # - collapse spaces (as OA intention was afterall), but break original
+        #   playernames
+        # For now the second one is used by normalizing arenastring text (only).
+        # Caveat: strings have now different content. Normalized text doesn't
+        # contain contiguous spaces anymore, while html still does (even if
+        # they are not rendered). Term string also keeps them.
+        # This may cause inconsistencies on anything parsing messages and using
+        # one format string rather than another, so will probably change later,
+        # but for now we have at least aligned text and rendered html, which
+        # are the most important formats a user (Matrix client) may visualize.
         return cls(
-                arenastring.getstr(),
+                arenastring.normalize().getstr(),
                 arenastring.getstr(True),
                 arenastring.gethtml(HtmlPalette.colormap))
 
