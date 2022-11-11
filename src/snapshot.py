@@ -186,7 +186,7 @@ class DummyServerSnapshot(ServerSnapshot):
     # state from the RelevanceRule's evaluate() point of view (i.e. just
     # override the attributes and methods used by prev)
     def __init__(self, timestamp: float):
-        info = oaquery.ServerInfo(None, None, None, None, [])
+        info = oaquery.ServerInfo(None, None, None, None, [], 0)
         super().__init__(info, timestamp, timestamp)
 
     def get_num_players(self) -> int:
